@@ -3,22 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:email_validator/email_validator.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-// 🎨 COLORES AUTH - Independiente de recursos/colores.dart
+// 🎨 COLORES AUTH - Tema Cielo (sincronizado con wicss.dart)
 // ═══════════════════════════════════════════════════════════════════
 class AuthColores {
-  static const Color verdePrimario = Color(0xFF4CAF50);
-  static const Color verdeSecundario = Color(0xFF81C784);
-  static const Color verdeClaro = Color(0xFFB9F6CA);
-  static const Color verdeSuave = Color(0xFFE8F5E8);
-  static const Color textoOscuro = Color(0xFF2E2E2E);
-  static const Color textoVerde = Color(0xFF388E3C);
+  static const Color verdePrimario = Color(0xFF1978D7);   // mco
+  static const Color verdeSecundario = Color(0xFF00A8E6);  // hv
+  static const Color verdeClaro = Color(0xFFCCEFFF);       // bg
+  static const Color verdeSuave = Color(0xFFE5F7FF);       // wb
+  static const Color textoOscuro = Color(0xFF1A1A1A);      // tx1
+  static const Color textoVerde = Color(0xFF1978D7);       // mco
   static const Color blanco = Colors.white;
-  static const Color enlace = Color(0xFF4CAF50);
-  static const Color error = Color(0xFFE53935);
-  static const Color errorTexto = Color(0xFFD32F2F);
+  static const Color enlace = Color(0xFF1978D7);           // mco
+  static const Color error = Color(0xFFFF3849);            // err
+  static const Color errorTexto = Color(0xFFFF3849);       // err
   static const Color errorFondo = Color(0xFFFFEBEE);
-  static const Color gris = Color(0xFF9E9E9E);
+  static const Color gris = Color(0xFF9E9E9E);             // grs
 }
+
+// ...existing code...
+// (Todo lo demás queda igual: AuthEstilos, AuthConstantes, AuthValidadores,
+//  AuthFormatos, AuthFirebase, AuthBoton, AuthCampoTexto, etc.)
 
 // ═══════════════════════════════════════════════════════════════════
 // 🎭 ESTILOS AUTH - Independiente de recursos/colores.dart

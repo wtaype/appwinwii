@@ -14,8 +14,8 @@ void main() async {
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: AppCSS.verdeClaro,
-      systemNavigationBarColor: AppCSS.verdeClaro,
+      statusBarColor: AppCSS.mco,
+      systemNavigationBarColor: AppCSS.hv,
     ),
   );
   runApp(const MiApp());
@@ -29,7 +29,7 @@ class MiApp extends StatelessWidget {
     return MaterialApp(
       title: wii.app,
       debugShowCheckedModeBanner: false,
-      theme: AppEstilos.temaApp,
+      theme: AppEs.tema,
       home: const PantallaCargando(),
     );
   }

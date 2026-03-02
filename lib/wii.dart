@@ -1,7 +1,7 @@
 class wii {
-  static const String id = 'wiihope';
-  static const String app = 'WiiHope';
-  static const int lanzamiento = 2024;
+  static const String id = 'winwii';
+  static const String app = 'Winwii';
+  static const int lanzamiento = 2026;
   static const String autor = '@wilder.taype';
   static const String link = 'https://wtaype.github.io/';
   static const String version = 'v9.10.10';

@@ -1,279 +1,243 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'wicss.dart';
 
-// ═══════════════════════════════════════════════════════════════════
-// 🎯 WIDGETS REUTILIZABLES - Sistema de componentes
-// ═══════════════════════════════════════════════════════════════════
+// 🎯 WIDGETS REUTILIZABLES - Tema Cielo _______
 
-// 🎯 Botón principal que usamos mucho
-class BotonPrincipal extends StatelessWidget {
-  final String texto;
-  final VoidCallback alPresionar;
-  final IconData? icono;
-  final bool estaCargando;
-  final Color? colorFondo;
+// 🎯 Botón principal
+class Btn extends StatelessWidget {
+  final String txt;
+  final VoidCallback onTap;
+  final IconData? ico;
+  final bool load;
+  final Color? color;
 
-  const BotonPrincipal({
-    super.key,
-    required this.texto,
-    required this.alPresionar,
-    this.icono,
-    this.estaCargando = false,
-    this.colorFondo,
+  const Btn({
+    super.key, required this.txt, required this.onTap,
+    this.ico, this.load = false, this.color,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: estaCargando ? null : alPresionar,
-      icon: estaCargando
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : Icon(icono ?? Icons.check),
-      label: Text(texto),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colorFondo ?? AppCSS.verdePrimario,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppCSS.espacioGrande,
-          vertical: AppCSS.espacioMedio,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-        ),
-      ),
-    );
-  }
-}
-
-// 📝 Campo de texto guapo en español
-class CampoTexto extends StatelessWidget {
-  final String etiqueta;
-  final String? pista;
-  final IconData? icono;
-  final bool esContrasena;
-  final TextEditingController? controlador;
-  final String? Function(String?)? validador;
-  final TextInputType tipoTeclado;
-
-  const CampoTexto({
-    super.key,
-    required this.etiqueta,
-    this.pista,
-    this.icono,
-    this.esContrasena = false,
-    this.controlador,
-    this.validador,
-    this.tipoTeclado = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controlador,
-      obscureText: esContrasena,
-      validator: validador,
-      keyboardType: tipoTeclado,
-      style: AppEstilos.textoNormal,
-      decoration: InputDecoration(
-        labelText: etiqueta,
-        hintText: pista,
-        prefixIcon: icono != null
-            ? Icon(icono, color: AppCSS.verdePrimario)
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-          borderSide: BorderSide(color: AppCSS.verdeSecundario),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-          borderSide: BorderSide(color: AppCSS.verdePrimario, width: 2),
-        ),
-        filled: true,
-        fillColor: AppCSS.blanco,
-      ),
-    );
-  }
-}
-
-// 💳 Tarjeta bonita para mostrar información
-class TarjetaInformacion extends StatelessWidget {
-  final Widget contenido;
-  final VoidCallback? alTocar;
-  final Color? colorFondo;
-  final double? elevacion;
-
-  const TarjetaInformacion({
-    super.key,
-    required this.contenido,
-    this.alTocar,
-    this.colorFondo,
-    this.elevacion = 4,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: elevacion,
-      color: colorFondo,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-      ),
-      child: InkWell(
-        onTap: alTocar,
-        borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-        child: Padding(
-          padding: const EdgeInsets.all(AppCSS.espacioMedio),
-          child: contenido,
-        ),
-      ),
-    );
-  }
-}
-
-// 😢 Widget para cuando no hay datos disponibles
-class SinDatos extends StatelessWidget {
-  final String mensaje;
-  final IconData icono;
-  final String? textoBoton;
-  final VoidCallback? accionBoton;
-
-  const SinDatos({
-    super.key,
-    required this.mensaje,
-    this.icono = Icons.inbox,
-    this.textoBoton,
-    this.accionBoton,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icono, size: 80, color: AppCSS.verdeSecundario),
-          const SizedBox(height: AppCSS.espacioMedio),
-          Text(
-            mensaje,
-            style: AppEstilos.subtitulo,
-            textAlign: TextAlign.center,
-          ),
-          if (textoBoton != null && accionBoton != null) ...[
-            const SizedBox(height: AppCSS.espacioGrande),
-            BotonPrincipal(
-              texto: textoBoton!,
-              alPresionar: accionBoton!,
-              icono: Icons.refresh,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// 🍕 Helper para mostrar mensajes sabrosos
-class MensajeHelper {
-  static void mostrarExito(BuildContext contexto, String mensaje) {
-    _mostrarMensaje(contexto, mensaje, esError: false);
-  }
-
-  static void mostrarError(BuildContext contexto, String mensaje) {
-    _mostrarMensaje(contexto, mensaje, esError: true);
-  }
-
-  static void _mostrarMensaje(
-    BuildContext contexto,
-    String mensaje, {
-    required bool esError,
-  }) {
-    ScaffoldMessenger.of(contexto).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              esError ? Icons.error : Icons.check_circle,
-              color: Colors.white,
-            ),
-            const SizedBox(width: AppCSS.espacioChico),
-            Expanded(
-              child: Text(
-                mensaje,
-                style: AppEstilos.textoNormal.copyWith(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: esError ? Colors.red.shade600 : AppCSS.verdePrimario,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppCSS.radioChico),
-        ),
-        duration: AppCSS.animacionLenta,
-      ),
-    );
-  }
-}
-
-// 🔄 Widget de carga bonito
-class IndicadorCarga extends StatelessWidget {
-  final String? mensaje;
-
-  const IndicadorCarga({super.key, this.mensaje});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: AppCSS.verdePrimario),
-          if (mensaje != null) ...[
-            const SizedBox(height: AppCSS.espacioMedio),
-            Text(mensaje!, style: AppEstilos.textoNormal),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class AppWidgets {
-  // Contenedor con estilo predefinido
-  static Widget contenedorOracion(String texto) => Container(
-    padding: AppCSS.miwp,
-    decoration: BoxDecoration(
-      color: AppCSS.verdeSuave,
-      borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-    ),
-    child: Text(
-      texto,
-      style: AppEstilos.textoNormal.copyWith(
-        height: 1.5,
-        color: AppCSS.verdeOscuro,
-      ),
-      textAlign: TextAlign.center,
+  Widget build(BuildContext ctx) => ElevatedButton.icon(
+    onPressed: load ? null : onTap,
+    icon: load
+        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+        : Icon(ico ?? Icons.check),
+    label: Text(txt),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: color ?? AppCSS.mco,
+      padding: const EdgeInsets.symmetric(horizontal: AppCSS.l, vertical: AppCSS.m),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
     ),
   );
+}
 
-  // Imagen con bordes redondeados
-  static Widget imagenRedondeada(String ruta) => ClipRRect(
-    borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-    child: Image.asset(ruta, fit: BoxFit.cover),
+// 📝 Campo de texto
+class Campo extends StatelessWidget {
+  final String lbl;
+  final String? hint;
+  final IconData? ico;
+  final bool pass;
+  final TextEditingController? ctrl;
+  final String? Function(String?)? vld;
+  final TextInputType kb;
+
+  const Campo({
+    super.key, required this.lbl, this.hint, this.ico,
+    this.pass = false, this.ctrl, this.vld,
+    this.kb = TextInputType.text,
+  });
+
+  @override
+  Widget build(BuildContext ctx) => TextFormField(
+    controller: ctrl, obscureText: pass,
+    validator: vld, keyboardType: kb,
+    style: AppEs.bd,
+    decoration: InputDecoration(
+      labelText: lbl, hintText: hint,
+      prefixIcon: ico != null ? Icon(ico, color: AppCSS.mco) : null,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppCSS.rM),
+        borderSide: const BorderSide(color: AppCSS.brd),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppCSS.rM),
+        borderSide: const BorderSide(color: AppCSS.mco, width: 2),
+      ),
+      filled: true, fillColor: AppCSS.inp,
+    ),
+  );
+}
+
+// 💳 Tarjeta glass
+class Glass extends StatelessWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final EdgeInsets? pad;
+
+  const Glass({super.key, required this.child, this.onTap, this.pad});
+
+  @override
+  Widget build(BuildContext ctx) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: pad ?? const EdgeInsets.all(AppCSS.m),
+      decoration: AppCSS.gCard,
+      child: child,
+    ),
+  );
+}
+
+// 🏷️ Chip módulo
+class Chip2 extends StatelessWidget {
+  final String txt;
+  final IconData ico;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const Chip2({
+    super.key, required this.txt, required this.ico,
+    required this.color, this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext ctx) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(AppCSS.rS),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(ico, size: 16, color: color), AppCSS.ghs,
+        Text(txt, style: AppEs.bdS.copyWith(color: color, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
+}
+
+// 📊 Stat card
+class Stat extends StatelessWidget {
+  final String val;
+  final String lbl;
+  final IconData ico;
+  final Color color;
+
+  const Stat({
+    super.key, required this.val, required this.lbl,
+    required this.ico, this.color = AppCSS.mco,
+  });
+
+  @override
+  Widget build(BuildContext ctx) => Container(
+    padding: const EdgeInsets.all(AppCSS.m),
+    decoration: AppCSS.gCard,
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Icon(ico, color: color, size: 28),
+      const SizedBox(height: 6),
+      Text(val, style: AppEs.h2.copyWith(color: color)),
+      Text(lbl, style: AppEs.sm),
+    ]),
+  );
+}
+
+// 😢 Sin datos
+class Vacio extends StatelessWidget {
+  final String msg;
+  final IconData ico;
+  final String? txtBtn;
+  final VoidCallback? onTap;
+
+  const Vacio({
+    super.key, required this.msg,
+    this.ico = Icons.inbox, this.txtBtn, this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext ctx) => Center(
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(ico, size: 80, color: AppCSS.brd),
+      AppCSS.gm,
+      Text(msg, style: AppEs.h3, textAlign: TextAlign.center),
+      if (txtBtn != null && onTap != null) ...[
+        AppCSS.gl,
+        Btn(txt: txtBtn!, onTap: onTap!, ico: Icons.refresh),
+      ],
+    ]),
+  );
+}
+
+// 🍕 Snackbar
+class Msg {
+  static void ok(BuildContext c, String m) => _s(c, m, false);
+  static void er(BuildContext c, String m) => _s(c, m, true);
+
+  static void _s(BuildContext c, String m, bool e) {
+    ScaffoldMessenger.of(c).showSnackBar(SnackBar(
+      content: Row(children: [
+        Icon(e ? Icons.error : Icons.check_circle, color: Colors.white),
+        AppCSS.ghs,
+        Expanded(child: Text(m, style: AppEs.bdS.copyWith(color: Colors.white))),
+      ]),
+      backgroundColor: e ? AppCSS.err : AppCSS.ok,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS)),
+      duration: AppCSS.trL,
+    ));
+  }
+}
+
+// 🔄 Cargando
+class Load extends StatelessWidget {
+  final String? msg;
+  const Load({super.key, this.msg});
+
+  @override
+  Widget build(BuildContext ctx) => Center(
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const CircularProgressIndicator(color: AppCSS.mco),
+      if (msg != null) ...[AppCSS.gm, Text(msg!, style: AppEs.bd)],
+    ]),
+  );
+}
+
+// 🎨 Helpers
+class Wi {
+  static Widget caja(String tx) => Container(
+    padding: AppCSS.pM, decoration: AppCSS.gCard,
+    child: Text(tx, style: AppEs.bd.copyWith(height: 1.5), textAlign: TextAlign.center),
   );
 
-  // Corazón animado reutilizable
-  static Widget corazonPulso(bool pulsoGrande) => TweenAnimationBuilder<double>(
-    tween: Tween(begin: pulsoGrande ? 1.0 : 0.88, end: pulsoGrande ? 1.06 : 0.94),
-    duration: const Duration(milliseconds: 800),
-    curve: Curves.easeInOut,
-    builder: (_, scale, child) => Transform.scale(scale: scale, child: child),
-    child: Icon(Icons.favorite, color: AppCSS.verdePrimario, size: 48),
+  static Widget img(String r) => ClipRRect(
+    borderRadius: BorderRadius.circular(AppCSS.rM),
+    child: Image.asset(r, fit: BoxFit.cover),
   );
+
+  static Widget gTxt(String tx, {double sz = 24}) => ShaderMask(
+    shaderCallback: (b) => AppCSS.gSky.createShader(b),
+    child: Text(tx, style: GoogleFonts.poppins(
+      fontSize: sz, fontWeight: FontWeight.w700, color: Colors.white,
+    )),
+  );
+
+  static Widget line() => Container(
+    width: 60, height: 3,
+    decoration: BoxDecoration(gradient: AppCSS.gSky, borderRadius: BorderRadius.circular(2)),
+  );
+
+  static String hi() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Buenos días ☀️';
+    if (h < 18) return 'Buenas tardes 🌤️';
+    return 'Buenas noches 🌙';
+  }
+
+  static String dia() {
+    const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    final n = DateTime.now();
+    return '${dias[n.weekday % 7]}, ${n.day} ${meses[n.month - 1]}';
+  }
 }

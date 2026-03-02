@@ -1,5 +1,3 @@
-// Sistema de cache integrado para configuración: cache en memoria + SharedPreferences para optimizar lecturas Firebase
-// Implementa cache inteligente con expiración de 6 horas, ahorro del 95% de lecturas de Firebase
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -12,508 +10,376 @@ import '../../wiauth/usuario.dart';
 import '../../wiauth/firestore_fb.dart';
 import 'acerca.dart';
 
-class PantallaConfiguracion extends StatefulWidget {
-  const PantallaConfiguracion({super.key});
+class PantallaConfig extends StatefulWidget {
+  const PantallaConfig({super.key});
 
   @override
-  State<PantallaConfiguracion> createState() => _PantallaConfiguracionState();
+  State<PantallaConfig> createState() => _PantallaConfigState();
 }
 
-class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
-  // 🎯 Cache estático para máximo rendimiento
-  static Usuario? _usuarioCache;
-  static DateTime? _fechaCache;
-  static const _tiempoExpiracion = Duration(hours: 6);
-  static const _keyUsuario = 'usuario_cache';
-  static const _keyFecha = 'fecha_cache';
+class _PantallaConfigState extends State<PantallaConfig> {
+  // 🎯 Cache estático 3 niveles
+  static Usuario? _uCache;
+  static DateTime? _fCache;
+  static const _tExp = Duration(hours: 6);
+  static const _kU = 'usuario_cache';
+  static const _kF = 'fecha_cache';
 
-  final _controllerFoto = TextEditingController();
-  bool _cargando = false, _cargandoUsuario = true;
-  Usuario? _usuario;
+  final _fotoCtrl = TextEditingController();
+  bool _cargando = false, _cargandoU = true;
+  Usuario? _u;
 
   @override
   void initState() {
     super.initState();
-    _cargarUsuario();
+    _cargarU();
   }
 
-  // 📱 Cargar usuario con cache súper eficiente
-  _cargarUsuario() async {
-    setState(() => _cargandoUsuario = true);
-
+  Future<void> _cargarU() async {
+    setState(() => _cargandoU = true);
     try {
-      _usuario = await _obtenerUsuarioConCache();
-      if (_usuario?.foto?.isNotEmpty == true) {
-        _controllerFoto.text = _usuario!.foto!;
-      }
+      _u = await _obtenerUConCache();
+      if (_u?.foto?.isNotEmpty == true) _fotoCtrl.text = _u!.foto!;
     } catch (e) {
-      if (mounted) MensajeHelper.mostrarError(context, 'Error: $e');
+      if (mounted) Msg.er(context, 'Error: $e');
     } finally {
-      if (mounted) setState(() => _cargandoUsuario = false);
+      if (mounted) setState(() => _cargandoU = false);
     }
   }
 
-  // 🧠 Sistema de cache súper inteligente (3 niveles)
-  Future<Usuario?> _obtenerUsuarioConCache() async {
+  // 🧠 Cache 3 niveles: memoria → storage → firebase
+  Future<Usuario?> _obtenerUConCache() async {
     if (!AuthServicio.estaLogueado) return null;
-
     final email = AuthServicio.usuarioActual!.email!;
 
-    // 1. 🧠 Cache en memoria
-    if (_usuarioCache != null && _cacheValido()) {
-      print('📱 MEMORIA cache');
-      return _usuarioCache;
-    }
+    // 1. Memoria
+    if (_uCache != null && _cacheOk()) return _uCache;
 
-    // 2. 💾 Cache en storage
-    final usuarioStorage = await _obtenerDeStorage();
-    if (usuarioStorage != null && _cacheValido()) {
-      print('💾 STORAGE cache');
-      return _usuarioCache = usuarioStorage;
-    }
+    // 2. Storage
+    final uSto = await _deStorage();
+    if (uSto != null && _cacheOk()) return _uCache = uSto;
 
-    // 3. 🌐 Firebase (solo si necesario)
-    print('🌐 FIREBASE lectura');
-    final usuarioFirebase = await DatabaseServicio.obtenerUsuarioPorEmail(email);
-    if (usuarioFirebase != null) {
-      await _guardarEnStorage(usuarioFirebase);
-      _usuarioCache = usuarioFirebase;
-      _fechaCache = DateTime.now();
+    // 3. Firebase
+    final uFb = await DatabaseServicio.obtenerUsuarioPorEmail(email);
+    if (uFb != null) {
+      await _aStorage(uFb);
+      _uCache = uFb;
+      _fCache = DateTime.now();
     }
-    return usuarioFirebase;
+    return uFb;
   }
 
-  // 🕐 Verificar cache válido
-  bool _cacheValido() =>
-      _fechaCache != null &&
-      DateTime.now().difference(_fechaCache!) < _tiempoExpiracion;
+  bool _cacheOk() => _fCache != null && DateTime.now().difference(_fCache!) < _tExp;
 
-  // 💾 Guardar en storage
-  Future<void> _guardarEnStorage(Usuario usuario) async {
+  Future<void> _aStorage(Usuario u) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyUsuario, jsonEncode(usuario.toMap()));
-      await prefs.setString(_keyFecha, DateTime.now().toIso8601String());
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kU, jsonEncode(u.toMap()));
+      await p.setString(_kF, DateTime.now().toIso8601String());
     } catch (_) {}
   }
 
-  // 💾 Obtener de storage
-  Future<Usuario?> _obtenerDeStorage() async {
+  Future<Usuario?> _deStorage() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final usuarioJson = prefs.getString(_keyUsuario);
-      final fechaStr = prefs.getString(_keyFecha);
-
-      if (usuarioJson == null || fechaStr == null) return null;
-
-      _fechaCache = DateTime.parse(fechaStr);
-      return Usuario.fromMap(jsonDecode(usuarioJson));
-    } catch (_) {
-      return null;
-    }
+      final p = await SharedPreferences.getInstance();
+      final j = p.getString(_kU), f = p.getString(_kF);
+      if (j == null || f == null) return null;
+      _fCache = DateTime.parse(f);
+      return Usuario.fromMap(jsonDecode(j));
+    } catch (_) { return null; }
   }
 
-  // 🗑️ Limpiar cache
   Future<void> _limpiarCache() async {
-    _usuarioCache = null;
-    _fechaCache = null;
+    _uCache = null; _fCache = null;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyUsuario);
-      await prefs.remove(_keyFecha);
+      final p = await SharedPreferences.getInstance();
+      await p.remove(_kU); await p.remove(_kF);
     } catch (_) {}
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text('Configuración', style: AppEstilos.textoBoton),
-          backgroundColor: AppCSS.verdePrimario,
-          foregroundColor: AppCSS.blanco,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.refresh),
-              onPressed: _recargarUsuario,
-              tooltip: 'Recargar datos',
-            ),
-          ],
-        ),
-        backgroundColor: AppCSS.verdeClaro,
-        body: _cargandoUsuario
-            ? Center(child: IndicadorCarga(mensaje: 'Cargando perfil...'))
-            : _usuario == null
-                ? Center(
-                    child: SinDatos(
-                      mensaje: 'Error cargando usuario',
-                      icono: Icons.error,
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: AppCSS.miwp,
-                    child: Column(
-                      children: [
-                        AppCSS.espacioMedioWidget,
-                        _fotoPerfil(),
-                        _usuarioSimple(),
-                        _tarjetaInformacion(),
-                        _cambiarFoto(),
-                        _botonCerrarSesion(),
-                        _botonAcercaDe(), // 🆕 NUEVO
-                        _infoApp(),
-                        AppCSS.espacioMedioWidget,
-                      ],
-                    ),
-                  ),
-      );
+  Widget build(BuildContext ctx) {
+    if (_cargandoU) return const Load(msg: 'Cargando perfil...');
+    if (_u == null) return const Vacio(msg: 'Error cargando usuario', ico: Icons.error);
 
-  // 📷 Foto de perfil - COMPACTO
-  Widget _fotoPerfil() => Center(
-        child: Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppCSS.blanco,
-            boxShadow: [
-              BoxShadow(
-                color: AppCSS.verdePrimario.withOpacity(0.3),
-                blurRadius: 12,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ClipOval(
-            child: _usuario?.foto?.isNotEmpty == true
-                ? Image.network(
-                    _usuario!.foto!,
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fotoDefault(),
-                  )
-                : _fotoDefault(),
-          ),
-        ),
-      );
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: AppCSS.pL,
+        child: Column(children: [
+          // 🔝 Header _______
+          _header(),
+          AppCSS.gm,
+          // 📷 Foto _______
+          _foto(),
+          AppCSS.gs,
+          // 👤 Usuario _______
+          Text('@${_u?.usuario ?? 'Usuario'}',
+            style: AppEs.h3.copyWith(color: AppCSS.mco)),
+          AppCSS.gm,
+          // 📋 Info personal _______
+          _info(),
+          AppCSS.gm,
+          // 🖼️ Cambiar foto _______
+          _cambiarFoto(),
+          AppCSS.gm,
+          // 🚪 Cerrar sesión _______
+          _btnCerrar(),
+          AppCSS.gs,
+          // ℹ️ Acerca de _______
+          _btnAcerca(),
+          AppCSS.gm,
+          // 📱 Info app _______
+          _infoApp(),
+          AppCSS.gm,
+        ]),
+      ),
+    );
+  }
 
-  // 😊 Foto por defecto con logoSmile
+  // 🔝 Header _______
+  Widget _header() => Glass(child: Row(children: [
+    Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: AppCSS.gSky,
+        borderRadius: BorderRadius.circular(AppCSS.rM),
+      ),
+      child: const Icon(Icons.settings, color: AppCSS.F, size: 22),
+    ),
+    AppCSS.ghm,
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Configuración', style: AppEs.h3),
+      Text('Gestiona tu perfil', style: AppEs.sm),
+    ])),
+    IconButton(
+      icon: const Icon(Icons.refresh, color: AppCSS.mco, size: 20),
+      onPressed: _recargarU,
+    ),
+  ]));
+
+  // 📷 Foto _______
+  Widget _foto() => Center(
+    child: Container(
+      width: 100, height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle, color: AppCSS.F,
+        boxShadow: [BoxShadow(color: AppCSS.mco.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: ClipOval(
+        child: _u?.foto?.isNotEmpty == true
+            ? Image.network(_u!.foto!, width: 100, height: 100, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fotoDefault())
+            : _fotoDefault(),
+      ),
+    ),
+  );
+
   Widget _fotoDefault() => Container(
-        width: 120,
-        height: 120,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: AppCSS.verdeSuave),
-        child: ClipOval(
-          child: Image.asset(
-            AppCSS.logoSmile,
-            width: 120,
-            height: 120,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Icon(Icons.account_circle, size: 80, color: AppCSS.verdePrimario),
-          ),
+    width: 100, height: 100,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: AppCSS.wb),
+    child: ClipOval(
+      child: Image.asset(AppCSS.lgSmile, width: 100, height: 100, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.account_circle, size: 60, color: AppCSS.mco)),
+    ),
+  );
+
+  // 📋 Info _______
+  Widget _info() => Glass(child: Column(children: [
+    _infoItem('Nombre completo', '${_u?.nombre ?? 'N/A'} ${_u?.apellidos ?? ''}', Icons.badge),
+    _div(),
+    _infoItem('Email', _u?.email ?? 'N/A', Icons.email),
+    _div(),
+    _infoItem('Grupo', _u?.grupo ?? 'N/A', Icons.group),
+  ]));
+
+  Widget _infoItem(String tit, String val, IconData ico) => Row(children: [
+    Container(
+      width: 40, height: 40,
+      decoration: BoxDecoration(
+        color: AppCSS.mco.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(ico, color: AppCSS.mco, size: 20),
+    ),
+    AppCSS.ghm,
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(tit, style: AppEs.sm),
+      Text(val, style: AppEs.bdS.copyWith(fontWeight: FontWeight.w600)),
+    ])),
+  ]);
+
+  Widget _div() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Divider(color: AppCSS.brd.withOpacity(0.5), height: 1),
+  );
+
+  // 🖼️ Cambiar foto _______
+  Widget _cambiarFoto() => Glass(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Row(children: [
+      Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: AppCSS.mco.withOpacity(0.1),
+          shape: BoxShape.circle,
         ),
-      );
+        child: const Icon(Icons.photo_camera, color: AppCSS.mco, size: 20),
+      ),
+      AppCSS.ghm,
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Foto de Perfil', style: AppEs.bdS.copyWith(fontWeight: FontWeight.w600)),
+        Text('Agrega el enlace de tu foto', style: AppEs.sm),
+      ])),
+    ]),
+    AppCSS.gm,
+    Campo(lbl: 'URL de la imagen', hint: 'https://ejemplo.com/mi-foto.jpg',
+      ico: Icons.link, ctrl: _fotoCtrl, kb: TextInputType.url),
+    AppCSS.gm,
+    SizedBox(
+      width: double.infinity,
+      child: Btn(
+        txt: _cargando ? 'Actualizando...' : 'Actualizar Foto',
+        ico: Icons.update, load: _cargando,
+        onTap: _actualizarFoto,
+      ),
+    ),
+  ]));
 
-  // 👤 Usuario simple sin fondo - SÚPER LIMPIO
-  Widget _usuarioSimple() => Padding(
-        padding: EdgeInsets.symmetric(vertical: AppCSS.espacioMedio),
-        child: Text(
-          '@${_usuario?.usuario ?? 'Usuario'}',
-          style: AppEstilos.subtitulo.copyWith(
-            color: AppCSS.verdePrimario,
-            fontWeight: FontWeight.w700,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      );
+  // 🚪 Cerrar sesión _______
+  Widget _btnCerrar() => SizedBox(
+    width: double.infinity,
+    child: ElevatedButton.icon(
+      onPressed: _cerrarSesion,
+      icon: const Icon(Icons.logout),
+      label: const Text('Cerrar Sesión'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppCSS.err,
+        foregroundColor: AppCSS.F,
+        padding: const EdgeInsets.symmetric(vertical: AppCSS.m),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
+      ),
+    ),
+  );
 
-  // 📋 Tarjeta de información personal - UNA SOLA TARJETA BLANCA
-  Widget _tarjetaInformacion() => TarjetaInformacion(
-        colorFondo: AppCSS.blanco,
-        elevacion: 3,
-        contenido: Column(
-          children: [
-            _itemInfo(
-              'Nombres Completos',
-              '${_usuario?.nombre ?? 'N/A'} ${_usuario?.apellidos ?? ''}',
-              Icons.badge,
-            ),
-            Divider(color: AppCSS.grisClaro, height: AppCSS.espacioGrande),
-            _itemInfo('Email', _usuario?.email ?? 'N/A', Icons.email),
-            Divider(color: AppCSS.grisClaro, height: AppCSS.espacioGrande),
-            _itemInfo('Grupo Unido', _usuario?.grupo ?? 'N/A', Icons.group),
-          ],
-        ),
-      );
+  // ℹ️ Acerca de _______
+  Widget _btnAcerca() => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: () => Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const PantallaAcerca())),
+      icon: const Icon(Icons.info_outline),
+      label: const Text('Acerca de'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppCSS.mco,
+        side: const BorderSide(color: AppCSS.mco, width: 2),
+        padding: const EdgeInsets.symmetric(vertical: AppCSS.m),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
+      ),
+    ),
+  );
 
-  // 📝 Item de información - SÚPER COMPACTO
-  Widget _itemInfo(String titulo, String valor, IconData icono) => Row(
-        children: [
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: AppCSS.verdeSuave,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icono, color: AppCSS.verdePrimario, size: 22),
-          ),
-          AppCSS.espacioMedioWidget,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: AppEstilos.textoChico.copyWith(
-                    color: AppCSS.gris,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  valor,
-                  style: AppEstilos.textoNormal.copyWith(
-                    color: AppCSS.textoOscuro,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+  // 📱 Info app _______
+  Widget _infoApp() => Column(children: [
+    Text('${wii.app} ${wii.version}', style: AppEs.sm),
+    AppCSS.gs,
+    Text('${AppCSS.by} · ${wii.autor}', style: AppEs.sm.copyWith(fontStyle: FontStyle.italic)),
+  ]);
 
-  // 🖼️ Cambiar foto - PADDING MODERADO
-  Widget _cambiarFoto() => Padding(
-        padding: EdgeInsets.symmetric(vertical: AppCSS.espacioMedio),
-        child: TarjetaInformacion(
-          colorFondo: AppCSS.blanco,
-          elevacion: 2,
-          contenido: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 45,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      color: AppCSS.verdeSuave,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.photo_camera, color: AppCSS.verdePrimario, size: 22),
-                  ),
-                  AppCSS.espacioMedioWidget,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Foto de Perfil', style: AppEstilos.subtitulo.copyWith(color: AppCSS.textoOscuro)),
-                        Text('Agrega el enlace de tu foto', style: AppEstilos.textoChico.copyWith(color: AppCSS.gris)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              AppCSS.espacioMedioWidget,
-              CampoTexto(
-                etiqueta: 'URL de la imagen',
-                pista: 'https://ejemplo.com/mi-foto.jpg',
-                icono: Icons.link,
-                controlador: _controllerFoto,
-                tipoTeclado: TextInputType.url,
-              ),
-              AppCSS.espacioMedioWidget,
-              SizedBox(
-                width: double.infinity,
-                child: BotonPrincipal(
-                  texto: _cargando ? 'Actualizando...' : 'Actualizar Foto',
-                  icono: Icons.update,
-                  estaCargando: _cargando,
-                  alPresionar: _actualizarFoto,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  // 🚪 Botón cerrar sesión - PADDING REDUCIDO
-  Widget _botonCerrarSesion() => Padding(
-        padding: EdgeInsets.symmetric(vertical: AppCSS.espacioChico),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _cerrarSesion,
-            icon: Icon(Icons.logout),
-            label: Text('Cerrar Sesión'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppCSS.error,
-              foregroundColor: AppCSS.blanco,
-              padding: EdgeInsets.symmetric(vertical: AppCSS.espacioMedio),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-              ),
-            ),
-          ),
-        ),
-      );
-
-  // ℹ️ Botón Acerca de - COMPACTO
-  Widget _botonAcercaDe() => Padding(
-        padding: EdgeInsets.symmetric(vertical: AppCSS.espacioChico),
-        child: SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PantallaAcerca()),
-            ),
-            icon: Icon(Icons.info_outline),
-            label: Text('Acerca de'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppCSS.verdePrimario,
-              side: BorderSide(color: AppCSS.verdePrimario, width: 2),
-              padding: EdgeInsets.symmetric(vertical: AppCSS.espacioMedio),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppCSS.radioMedio),
-              ),
-            ),
-          ),
-        ),
-      );
-
-  // ℹ️ Solo versión y creado - SIN ICONO NI NOMBRE DE APP
-  Widget _infoApp() => Padding(
-        padding: EdgeInsets.symmetric(vertical: AppCSS.espacioMedio),
-        child: Column(
-          children: [
-            Text('Versión ${wii.version}', style: AppEstilos.textoChico.copyWith(color: AppCSS.gris)),
-            AppCSS.espacioChicoWidget,
-            Text(AppCSS.creadoBy, style: AppEstilos.textoChico.copyWith(color: AppCSS.gris, fontStyle: FontStyle.italic)),
-          ],
-        ),
-      );
-
-  // 🔄 Recargar usuario - COMPACTO
-  void _recargarUsuario() async {
-    setState(() => _cargandoUsuario = true);
-
+  // 🔄 Recargar _______
+  Future<void> _recargarU() async {
+    setState(() => _cargandoU = true);
     try {
       if (!AuthServicio.estaLogueado) return;
-
-      _usuarioCache = null;
-      _fechaCache = null;
-
-      final usuario = await DatabaseServicio.obtenerUsuarioPorEmail(AuthServicio.usuarioActual!.email!);
-
-      if (usuario != null && mounted) {
-        await _guardarEnStorage(usuario);
-        _usuarioCache = usuario;
-        _fechaCache = DateTime.now();
-
-        setState(() => _usuario = usuario);
-        MensajeHelper.mostrarExito(context, 'Datos actualizados 🔄');
+      _uCache = null; _fCache = null;
+      final u = await DatabaseServicio.obtenerUsuarioPorEmail(
+        AuthServicio.usuarioActual!.email!);
+      if (u != null && mounted) {
+        await _aStorage(u);
+        _uCache = u; _fCache = DateTime.now();
+        setState(() => _u = u);
+        Msg.ok(context, 'Datos actualizados 🔄');
       }
     } catch (e) {
-      if (mounted) MensajeHelper.mostrarError(context, 'Error: $e');
+      if (mounted) Msg.er(context, 'Error: $e');
     } finally {
-      if (mounted) setState(() => _cargandoUsuario = false);
+      if (mounted) setState(() => _cargandoU = false);
     }
   }
 
-  // 📷 Actualizar foto - COMPACTO
-  void _actualizarFoto() async {
-    final url = _controllerFoto.text.trim();
-    if (url.isEmpty) {
-      MensajeHelper.mostrarError(context, 'Ingresa un enlace válido');
-      return;
-    }
+  // 📷 Actualizar foto _______
+  Future<void> _actualizarFoto() async {
+    final url = _fotoCtrl.text.trim();
+    if (url.isEmpty) return Msg.er(context, 'Ingresa un enlace válido');
 
     setState(() => _cargando = true);
-
     try {
-      if (_usuario != null) {
-        await DatabaseServicio.actualizarFotoPerfil(_usuario!.usuario, url);
-
-        final usuarioActualizado = Usuario(
-          email: _usuario!.email,
-          usuario: _usuario!.usuario,
-          nombre: _usuario!.nombre,
-          apellidos: _usuario!.apellidos,
-          grupo: _usuario!.grupo,
-          genero: _usuario!.genero,
-          rol: _usuario!.rol,
-          activo: _usuario!.activo,
-          creacion: _usuario!.creacion,
-          uid: _usuario!.uid,
-          ultimaActividad: _usuario!.ultimaActividad,
-          aceptoTerminos: _usuario!.aceptoTerminos,
-          foto: url,
+      if (_u != null) {
+        await DatabaseServicio.actualizarFotoPerfil(_u!.usuario, url);
+        final uAct = Usuario(
+          email: _u!.email, usuario: _u!.usuario,
+          nombre: _u!.nombre, apellidos: _u!.apellidos,
+          grupo: _u!.grupo, genero: _u!.genero, rol: _u!.rol,
+          activo: _u!.activo, creacion: _u!.creacion, uid: _u!.uid,
+          ultimaActividad: _u!.ultimaActividad,
+          aceptoTerminos: _u!.aceptoTerminos, foto: url,
         );
-
-        await _guardarEnStorage(usuarioActualizado);
-        _usuarioCache = usuarioActualizado;
-        _fechaCache = DateTime.now();
-
-        setState(() => _usuario = usuarioActualizado);
-        _controllerFoto.clear();
-        MensajeHelper.mostrarExito(context, '¡Foto actualizada! 📷');
+        await _aStorage(uAct);
+        _uCache = uAct; _fCache = DateTime.now();
+        setState(() => _u = uAct);
+        _fotoCtrl.clear();
+        Msg.ok(context, '¡Foto actualizada! 📷');
       }
     } catch (e) {
-      MensajeHelper.mostrarError(context, 'Error: $e');
+      Msg.er(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
   }
 
-  // 🚪 Cerrar sesión - COMPACTO
-  void _cerrarSesion() async {
-    final confirmar = await showDialog<bool>(
+  // 🚪 Cerrar sesión _______
+  Future<void> _cerrarSesion() async {
+    final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cerrar Sesión', style: AppEstilos.subtitulo),
-        content: Text('¿Estás seguro que quieres cerrar sesión?', style: AppEstilos.textoNormal),
-        backgroundColor: AppCSS.blanco,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.radioMedio)),
+      builder: (ctx) => AlertDialog(
+        title: Text('Cerrar Sesión', style: AppEs.h3),
+        content: Text('¿Estás seguro que quieres cerrar sesión?', style: AppEs.bd),
+        backgroundColor: AppCSS.F,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: AppCSS.gris)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppCSS.error,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.radioChico)),
+              backgroundColor: AppCSS.err,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS)),
             ),
-            child: Text('Cerrar Sesión', style: TextStyle(color: AppCSS.blanco)),
+            child: Text('Cerrar Sesión', style: AppEs.bdS.copyWith(color: AppCSS.F)),
           ),
         ],
       ),
     );
 
-    if (confirmar == true) {
+    if (ok == true) {
       try {
         await _limpiarCache();
         await AuthServicio.logout();
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
+          Navigator.pushAndRemoveUntil(context,
             MaterialPageRoute(builder: (_) => const PantallaLogin()),
-            (route) => false,
-          );
+            (r) => false);
         }
       } catch (e) {
-        if (mounted) MensajeHelper.mostrarError(context, 'Error: $e');
+        if (mounted) Msg.er(context, 'Error: $e');
       }
     }
   }
 
   @override
   void dispose() {
-    _controllerFoto.dispose();
+    _fotoCtrl.dispose();
     super.dispose();
   }
 }
