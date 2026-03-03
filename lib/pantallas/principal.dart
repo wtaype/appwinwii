@@ -40,14 +40,14 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       currentIndex: idx,
       onTap: (i) {
         setState(() => idx = i);
-        pgC.animateToPage(i, duration: AppCSS.trM, curve: Curves.easeInOut);
+        pgC.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       },
       type: BottomNavigationBarType.fixed,
-      backgroundColor: AppCSS.F,
+      backgroundColor: AppCSS.whi,
       selectedItemColor: AppCSS.mco,
       unselectedItemColor: AppCSS.grs,
-      selectedLabelStyle: AppEs.iSM.copyWith(fontWeight: FontWeight.w600),
-      unselectedLabelStyle: AppEs.tSM,
+      selectedLabelStyle: AppEs.sm.copyWith(fontWeight: FontWeight.w600),
+      unselectedLabelStyle: AppEs.sm,
       elevation: 10,
       items: const [
         BottomNavigationBarItem(

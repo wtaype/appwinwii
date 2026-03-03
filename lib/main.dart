@@ -15,7 +15,7 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: AppCSS.mco,
-      systemNavigationBarColor: AppCSS.hv,
+      systemNavigationBarColor: AppCSS.wb,
     ),
   );
   runApp(const MiApp());

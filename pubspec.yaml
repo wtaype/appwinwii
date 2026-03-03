@@ -22,8 +22,9 @@ dependencies:
   email_validator: ^3.0.0        # Validación de formato de correo electrónico
   
   # ====== UI/UX / Interfaz visual y experiencia de usuario ======
-  google_fonts: ^7.0.0           # Tipografías personalizadas para un diseño moderno
-  fl_chart: ^1.1.1               # Gráficos para mostrar estadísticas de lectura/escucha
+  fl_chart: ^1.1.1
+  google_fonts: ^8.0.2
+  cupertino_icons: ^1.0.8
   
   # ====== UTILIDADES / Funcionalidades complementarias ======
   intl: ^0.20.2                  # Internacionalización, formato de fechas y números

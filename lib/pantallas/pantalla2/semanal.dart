@@ -79,7 +79,7 @@ class _VistaSemanalState extends State<VistaSemanal> {
       final data = await WiiDB.getWhere(_col, 'semana', _lunesStr);
       _agrupar(data);
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -90,9 +90,9 @@ class _VistaSemanalState extends State<VistaSemanal> {
     try {
       final data = await WiiDB.refreshWhere(_col, 'semana', _lunesStr);
       _agrupar(data);
-      if (mounted) Msg.ok(context, 'Semana actualizada 🔄');
+      if (mounted) Notificacion.ok(context, 'Semana actualizada 🔄');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -125,7 +125,7 @@ class _VistaSemanalState extends State<VistaSemanal> {
       await WiiDB.toggle(_col, id, 'done', nuevo);
     } catch (e) {
       setState(() => item['done'] = !nuevo);
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     }
   }
 
@@ -136,9 +136,9 @@ class _VistaSemanalState extends State<VistaSemanal> {
     setState(() => items[dia]?.remove(item));
     try {
       await WiiDB.del(_col, id);
-      if (mounted) Msg.ok(context, 'Eliminado ✅');
+      if (mounted) Notificacion.ok(context, 'Eliminado ✅');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar(); // Recargar si falla
     }
   }
@@ -195,26 +195,12 @@ class _VistaSemanalState extends State<VistaSemanal> {
   ]));
 
   Widget _stats() => Row(children: [
-    _statChip('$_total', 'Total', Icons.layers, AppCSS.mco),
+    wiStat('$_total', 'Total', Icons.layers, AppCSS.mco, vertical: false),
     AppCSS.ghs,
-    _statChip('$_done', 'Hechas', Icons.check_circle, AppCSS.cPln),
+    wiStat('$_done', 'Hechas', Icons.check_circle, AppCSS.bg2, vertical: false),
     AppCSS.ghs,
-    _statChip('$_pct%', 'Avance', Icons.trending_up, AppCSS.cHor),
+    wiStat('$_pct%', 'Avance', Icons.trending_up, AppCSS.bg1, vertical: false),
   ]);
-
-  Widget _statChip(String val, String lbl, IconData ico, Color clr) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: AppCSS.gCard,
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(ico, size: 16, color: clr),
-        const SizedBox(width: 6),
-        Text(val, style: AppEs.bdS.copyWith(color: clr, fontWeight: FontWeight.w700)),
-        const SizedBox(width: 4),
-        Text(lbl, style: AppEs.sm),
-      ]),
-    ),
-  );
 
   List<Widget> _board() {
     final ws = <Widget>[];
@@ -229,7 +215,7 @@ class _VistaSemanalState extends State<VistaSemanal> {
       ws.add(Container(
         margin: const EdgeInsets.only(bottom: AppCSS.s),
         decoration: BoxDecoration(
-          color: hoy ? AppCSS.mco.withOpacity(0.08) : AppCSS.F.withOpacity(0.7),
+          color: hoy ? AppCSS.mco.withOpacity(0.08) : AppCSS.whi.withOpacity(0.7),
           borderRadius: BorderRadius.circular(AppCSS.rL),
           border: Border.all(color: hoy ? AppCSS.mco.withOpacity(0.3) : AppCSS.brd.withOpacity(0.5)),
         ),
@@ -249,7 +235,7 @@ class _VistaSemanalState extends State<VistaSemanal> {
                 ),
                 child: Text(dia, style: AppEs.bdS.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: hoy ? AppCSS.F : (past ? AppCSS.grs : AppCSS.tx1),
+                  color: hoy ? AppCSS.whi : (past ? AppCSS.grs : AppCSS.tx1),
                 )),
               ),
               AppCSS.ghs,
@@ -298,9 +284,7 @@ class _VistaSemanalState extends State<VistaSemanal> {
 
   Widget _itemCard(Map<String, dynamic> item, bool past) {
     final cat = _catSem[item['categoria']] ?? _catSem['otro']!;
-    final clr = item['color'] != null
-        ? Color(int.parse('0xFF${(item['color'] as String).replaceAll('#', '')}'))
-        : cat['clr'] as Color;
+    final clr = wicoHx(item['color'] as String?, cat['clr'] as Color);
     final done = item['done'] == true;
     final prio = _prioSem[item['prioridad']] ?? _prioSem['media']!;
 
@@ -314,25 +298,9 @@ class _VistaSemanalState extends State<VistaSemanal> {
         child: const Icon(Icons.delete, color: AppCSS.err),
       ),
       confirmDismiss: (_) async {
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text('Eliminar', style: AppEs.h3),
-            content: Text('¿Eliminar "${item['titulo']}"?', style: AppEs.bd),
-            backgroundColor: AppCSS.F,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs))),
-              ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(backgroundColor: AppCSS.err,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS))),
-                child: Text('Eliminar', style: AppEs.bdS.copyWith(color: AppCSS.F))),
-            ],
-          ),
-        );
+        final ok = await Mensaje(context, msg: '¿Eliminar "${item['titulo']}"?');
         if (ok == true) _eliminar(item);
-        return false; // No dismiss automático
+        return false;
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

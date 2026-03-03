@@ -75,7 +75,7 @@ class _VistaMesState extends State<VistaMes> {
     try {
       items = await WiiDB.getR(_col, 'fecha', _desde, _hasta);
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -85,9 +85,9 @@ class _VistaMesState extends State<VistaMes> {
     setState(() => load = true);
     try {
       items = await WiiDB.refreshR(_col, 'fecha', _desde, _hasta);
-      if (mounted) Msg.ok(context, 'Mes actualizado 🔄');
+      if (mounted) Notificacion.ok(context, 'Mes actualizado 🔄');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -102,7 +102,7 @@ class _VistaMesState extends State<VistaMes> {
       await WiiDB.toggle(_col, id, 'done', nuevo);
     } catch (e) {
       setState(() => item['done'] = !nuevo);
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     }
   }
 
@@ -112,9 +112,9 @@ class _VistaMesState extends State<VistaMes> {
     setState(() => items.remove(item));
     try {
       await WiiDB.del(_col, id);
-      if (mounted) Msg.ok(context, 'Eliminado ✅');
+      if (mounted) Notificacion.ok(context, 'Eliminado ✅');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar();
     }
   }
@@ -179,34 +179,21 @@ class _VistaMesState extends State<VistaMes> {
   ]));
 
   Widget _stats() => Row(children: [
-    _statChip('$_total', 'Eventos', Icons.layers, AppCSS.mco),
+    wiStat('$_total', 'Eventos', Icons.layers, AppCSS.mco),
     AppCSS.ghs,
-    _statChip('$_done', 'Hechos', Icons.check_circle, AppCSS.cPln),
+    wiStat('$_done', 'Hechos', Icons.check_circle, AppCSS.bg2),
     AppCSS.ghs,
-    _statChip('$_alta', 'Urgentes', Icons.local_fire_department, AppCSS.cTar),
+    wiStat('$_alta', 'Urgentes', Icons.local_fire_department, AppCSS.bg4),
   ]);
-
-  Widget _statChip(String val, String lbl, IconData ico, Color clr) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: AppCSS.gCard,
-      child: Column(children: [
-        Icon(ico, size: 18, color: clr),
-        const SizedBox(height: 4),
-        Text(val, style: AppEs.bdS.copyWith(color: clr, fontWeight: FontWeight.w700)),
-        Text(lbl, style: AppEs.sm),
-      ]),
-    ),
-  );
 
   Widget _grid() => Container(
     padding: const EdgeInsets.all(10),
-    decoration: AppCSS.gCard,
+    decoration: AppCSS.gls2,
     child: Column(children: [
       Row(children: _diasEs.map((d) => Expanded(
         child: Center(child: Text(d, style: AppEs.sm.copyWith(
           fontWeight: FontWeight.w600,
-          color: (d == 'Dom' || d == 'Sáb') ? AppCSS.cTar : AppCSS.tx2,
+          color: (d == 'Dom' || d == 'Sáb') ? AppCSS.bg4 : AppCSS.tx2,
         ))),
       )).toList()),
       const SizedBox(height: 6),
@@ -283,7 +270,7 @@ class _VistaMesState extends State<VistaMes> {
     final past = selFecha!.compareTo(_hoy) < 0;
 
     return Container(
-      decoration: AppCSS.gCard,
+      decoration: AppCSS.gls2,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           padding: const EdgeInsets.all(14),
@@ -297,7 +284,7 @@ class _VistaMesState extends State<VistaMes> {
                 color: esH ? AppCSS.mco : (past ? AppCSS.grs.withOpacity(0.2) : AppCSS.brd.withOpacity(0.2)),
                 borderRadius: BorderRadius.circular(AppCSS.rS),
               ),
-              child: Icon(Icons.calendar_today, size: 18, color: esH ? AppCSS.F : AppCSS.grs),
+              child: Icon(Icons.calendar_today, size: 18, color: esH ? AppCSS.whi : AppCSS.grs),
             ),
             AppCSS.ghs,
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -385,33 +372,16 @@ class _VistaMesState extends State<VistaMes> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 16, color: AppCSS.cTar),
+            icon: Icon(Icons.close, size: 16, color: AppCSS.bg4),
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onPressed: () => _confirmarEliminar(item),
+            onPressed: () async {
+              final ok = await Mensaje(context, msg: '¿Eliminar "${item['titulo']}"?');
+              if (ok == true) _eliminar(item);
+            },
           ),
         ]),
       ]),
     );
   }
 
-  Future<void> _confirmarEliminar(Map<String, dynamic> item) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Eliminar', style: AppEs.h3),
-        content: Text('¿Eliminar "${item['titulo']}"?', style: AppEs.bd),
-        backgroundColor: AppCSS.F,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs))),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppCSS.err,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS))),
-            child: Text('Eliminar', style: AppEs.bdS.copyWith(color: AppCSS.F))),
-        ],
-      ),
-    );
-    if (ok == true) _eliminar(item);
-  }
 }

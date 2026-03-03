@@ -6,7 +6,6 @@ import '../firebase.dart';
 // 🏆 COLECCIÓN: 'logros' _______
 const _colLog = 'logros';
 
-// Categorías (mismo que logros.js CATEGORIAS)
 const _catLogro = {
   'personal':  {'lbl': 'Personal',  'ico': Icons.person, 'clr': Color(0xFFFFB800)},
   'trabajo':   {'lbl': 'Trabajo',   'ico': Icons.work, 'clr': Color(0xFF0EBEFF)},
@@ -19,13 +18,11 @@ const _catLogro = {
   'otro':      {'lbl': 'Otro',      'ico': Icons.star, 'clr': Color(0xFF94A3B8)},
 };
 
-// XP por categoría (mismo que logros.js XP_CAT)
 const _xpCat = {
   'personal': 15, 'trabajo': 20, 'estudio': 25, 'salud': 18,
   'deporte': 20, 'finanzas': 15, 'social': 12, 'creativo': 18, 'otro': 10,
 };
 
-// Niveles (mismo que logros.js NIVELES)
 const _niveles = [
   {'min': 0,    'max': 100,  'lbl': 'Novato',   'ico': Icons.eco, 'clr': Color(0xFF94A3B8), 'badge': '🌱'},
   {'min': 100,  'max': 300,  'lbl': 'Aprendiz', 'ico': Icons.bolt, 'clr': Color(0xFF29C72E), 'badge': '⚡'},
@@ -88,7 +85,7 @@ class _PantallaLogrosState extends State<PantallaLogros> with SingleTickerProvid
         margin: const EdgeInsets.fromLTRB(20, 10, 20, 5),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppCSS.F.withOpacity(0.7),
+          color: AppCSS.whi.withOpacity(0.7),
           borderRadius: BorderRadius.circular(AppCSS.rM),
           border: Border.all(color: AppCSS.brd.withOpacity(0.5)),
         ),
@@ -98,7 +95,7 @@ class _PantallaLogrosState extends State<PantallaLogros> with SingleTickerProvid
             gradient: const LinearGradient(colors: [Color(0xFFFF8C00), Color(0xFFFFB800)]),
             borderRadius: BorderRadius.circular(AppCSS.rS),
           ),
-          labelColor: AppCSS.F,
+          labelColor: AppCSS.whi,
           unselectedLabelColor: AppCSS.tx2,
           labelStyle: AppEs.bdS.copyWith(fontWeight: FontWeight.w600),
           unselectedLabelStyle: AppEs.bdS,
@@ -147,7 +144,7 @@ class _VistaLogrosState extends State<_VistaLogros> {
   Future<void> _cargar() async {
     setState(() => load = true);
     try { items = await WiiDB.get(_colLog); }
-    catch (e) { if (mounted) Msg.er(context, 'Error: $e'); }
+    catch (e) { if (mounted) Notificacion.err(context, 'Error: $e'); }
     finally { if (mounted) setState(() => load = false); }
   }
 
@@ -155,14 +152,13 @@ class _VistaLogrosState extends State<_VistaLogros> {
     setState(() => load = true);
     try {
       items = await WiiDB.refresh(_colLog);
-      if (mounted) Msg.ok(context, 'Logros actualizados 🔄');
-    } catch (e) { if (mounted) Msg.er(context, 'Error: $e'); }
+      if (mounted) Notificacion.ok(context, 'Logros actualizados 🔄');
+    } catch (e) { if (mounted) Notificacion.err(context, 'Error: $e'); }
     finally { if (mounted) setState(() => load = false); }
   }
 
   List<Map<String, dynamic>> get _filtrados {
     var list = List<Map<String, dynamic>>.from(items);
-    // Destacados primero, luego por fecha desc
     list.sort((a, b) {
       if (a['destacado'] == true && b['destacado'] != true) return -1;
       if (b['destacado'] == true && a['destacado'] != true) return 1;
@@ -176,7 +172,6 @@ class _VistaLogrosState extends State<_VistaLogros> {
   int get _total => items.length;
   int get _dest => items.where((l) => l['destacado'] == true).length;
 
-  // XP system (igual que logros.js)
   int get _xp => items.fold(0, (acc, l) {
     final base = _xpCat[l['categoria']] ?? 10;
     final extra = l['destacado'] == true ? 10 : 0;
@@ -216,9 +211,9 @@ class _VistaLogrosState extends State<_VistaLogros> {
     setState(() => items.remove(item));
     try {
       await WiiDB.del(_colLog, id);
-      if (mounted) Msg.ok(context, 'Logro eliminado ✅');
+      if (mounted) Notificacion.ok(context, 'Logro eliminado ✅');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar();
     }
   }
@@ -240,7 +235,6 @@ class _VistaLogrosState extends State<_VistaLogros> {
     );
   }
 
-  // ── Hero con XP y nivel (como logros.js log_hero) ──
   Widget _hero() {
     final niv = _nivel;
     final clr = niv['clr'] as Color;
@@ -256,7 +250,6 @@ class _VistaLogrosState extends State<_VistaLogros> {
       ),
       child: Column(children: [
         Row(children: [
-          // Avatar nivel
           Container(
             width: 52, height: 52,
             decoration: BoxDecoration(
@@ -277,19 +270,11 @@ class _VistaLogrosState extends State<_VistaLogros> {
             const SizedBox(height: 2),
             Text('$_xp XP · siguiente: ${_nivelSig['lbl']} (${_nivelSig['min']} XP)', style: AppEs.sm),
             const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: _xpPct, minHeight: 6,
-                backgroundColor: AppCSS.brd.withOpacity(0.3),
-                valueColor: AlwaysStoppedAnimation<Color>(clr),
-              ),
-            ),
+            wiProgress(_xpPct, clr),
           ])),
           IconButton(icon: const Icon(Icons.refresh, color: AppCSS.mco, size: 18), onPressed: _recargar),
         ]),
         const SizedBox(height: 12),
-        // Stats
         Row(children: [
           _heroStat('$_total', 'Logros', Icons.emoji_events, const Color(0xFFFFB800)),
           AppCSS.ghs,
@@ -305,7 +290,7 @@ class _VistaLogrosState extends State<_VistaLogros> {
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: AppCSS.F.withOpacity(0.7),
+        color: AppCSS.whi.withOpacity(0.7),
         borderRadius: BorderRadius.circular(AppCSS.rS),
       ),
       child: Column(children: [
@@ -320,36 +305,14 @@ class _VistaLogrosState extends State<_VistaLogros> {
   Widget _filtros() => SingleChildScrollView(
     scrollDirection: Axis.horizontal,
     child: Row(children: [
-      _filtroChip('todas', 'Todos', Icons.layers, AppCSS.mco),
-      _filtroChip('destacado', '⭐ Top', Icons.star, const Color(0xFFFFB800)),
-      ..._catLogro.entries.take(5).map((e) => _filtroChip(
-        e.key, e.value['lbl'] as String, e.value['ico'] as IconData, e.value['clr'] as Color,
+      wiFiltro(keyF: 'todas', lbl: 'Todos', ico: Icons.layers, clr: AppCSS.mco, sel: filtCat, onTap: () => setState(() => filtCat = 'todas')),
+      wiFiltro(keyF: 'destacado', lbl: '⭐ Top', ico: Icons.star, clr: const Color(0xFFFFB800), sel: filtCat, onTap: () => setState(() => filtCat = 'destacado')),
+      ..._catLogro.entries.take(5).map((e) => wiFiltro(
+        keyF: e.key, lbl: e.value['lbl'] as String, ico: e.value['ico'] as IconData,
+        clr: e.value['clr'] as Color, sel: filtCat, onTap: () => setState(() => filtCat = e.key),
       )),
     ]),
   );
-
-  Widget _filtroChip(String key, String lbl, IconData ico, Color clr) {
-    final sel = filtCat == key;
-    return GestureDetector(
-      onTap: () => setState(() => filtCat = key),
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: sel ? clr.withOpacity(0.15) : AppCSS.F.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(AppCSS.rS),
-          border: Border.all(color: sel ? clr : AppCSS.brd.withOpacity(0.5)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(ico, size: 14, color: sel ? clr : AppCSS.grs),
-          const SizedBox(width: 4),
-          Text(lbl, style: AppEs.sm.copyWith(
-            color: sel ? clr : AppCSS.tx2, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
-          )),
-        ]),
-      ),
-    );
-  }
 
   Widget _lista() {
     final data = _filtrados;
@@ -366,16 +329,14 @@ class _VistaLogrosState extends State<_VistaLogros> {
 
   Widget _logroCard(Map<String, dynamic> l) {
     final cat = _catLogro[l['categoria']] ?? _catLogro['otro']!;
-    final clr = l['color'] != null
-        ? Color(int.parse('0xFF${(l['color'] as String).replaceAll('#', '')}'))
-        : cat['clr'] as Color;
+    final clr = wicoHx(l['color'] as String?, cat['clr'] as Color);
     final esDest = l['destacado'] == true;
     final xp = _xpItem(l);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppCSS.s),
       decoration: BoxDecoration(
-        color: AppCSS.F.withOpacity(0.7),
+        color: AppCSS.whi.withOpacity(0.7),
         borderRadius: BorderRadius.circular(AppCSS.rL),
         border: Border.all(color: esDest ? const Color(0xFFFFB800).withOpacity(0.4) : clr.withOpacity(0.3)),
       ),
@@ -383,9 +344,9 @@ class _VistaLogrosState extends State<_VistaLogros> {
         if (esDest) Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFB800).withOpacity(0.1),
-            borderRadius: const BorderRadius.only(
+          decoration: const BoxDecoration(
+            color: Color(0x1AFFB800),
+            borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12), topRight: Radius.circular(12),
             ),
           ),
@@ -416,29 +377,13 @@ class _VistaLogrosState extends State<_VistaLogros> {
                 ),
               const SizedBox(height: 4),
               Wrap(spacing: 6, runSpacing: 4, children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: clr.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(cat['ico'] as IconData, size: 10, color: clr),
-                    const SizedBox(width: 3),
-                    Text(cat['lbl'] as String, style: AppEs.sm.copyWith(color: clr)),
-                  ]),
-                ),
+                wiBox(cat['ico'] as IconData, cat['lbl'] as String, clr),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: clr.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
                   child: Text('+$xp XP', style: AppEs.sm.copyWith(color: clr, fontWeight: FontWeight.w600)),
                 ),
-                if (l['fecha'] != null) Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: AppCSS.grs.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.calendar_today, size: 10, color: AppCSS.tx3),
-                    const SizedBox(width: 3),
-                    Text(_fmtFecha(l['fecha']), style: AppEs.sm),
-                  ]),
-                ),
+                if (l['fecha'] != null) wiBox(Icons.calendar_today, wiFecha(l['fecha'], anio: true), AppCSS.grs),
               ]),
             ])),
             Column(children: [
@@ -448,9 +393,12 @@ class _VistaLogrosState extends State<_VistaLogros> {
                 onPressed: () { /* TODO: Editar logro */ },
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 16, color: AppCSS.cTar),
+                icon: const Icon(Icons.close, size: 16, color: AppCSS.err),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                onPressed: () => _confirmarEliminar(l),
+                onPressed: () async {
+                  final ok = await Mensaje(context, msg: '¿Eliminar "${l['titulo']}"?');
+                  if (ok == true) _eliminar(l);
+                },
               ),
             ]),
           ]),
@@ -458,39 +406,10 @@ class _VistaLogrosState extends State<_VistaLogros> {
       ]),
     );
   }
-
-  Future<void> _confirmarEliminar(Map<String, dynamic> l) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Eliminar logro', style: AppEs.h3),
-        content: Text('¿Eliminar "${l['titulo']}"?', style: AppEs.bd),
-        backgroundColor: AppCSS.F,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs))),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppCSS.err,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS))),
-            child: Text('Eliminar', style: AppEs.bdS.copyWith(color: AppCSS.F))),
-        ],
-      ),
-    );
-    if (ok == true) _eliminar(l);
-  }
-
-  String _fmtFecha(String f) {
-    try {
-      final d = DateTime.parse(f);
-      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      return '${d.day} ${meses[d.month - 1]} ${d.year}';
-    } catch (_) { return f; }
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 📋 TAB 2: VISTA PLANES (sincronizado con planes.js)
+// 📋 TAB 2: VISTA PLANES
 // ═══════════════════════════════════════════════════════════════
 class _VistaPlanes extends StatefulWidget {
   const _VistaPlanes();
@@ -509,7 +428,7 @@ class _VistaPlanesState extends State<_VistaPlanes> {
   Future<void> _cargar() async {
     setState(() => load = true);
     try { items = await WiiDB.get(_colPlan); }
-    catch (e) { if (mounted) Msg.er(context, 'Error: $e'); }
+    catch (e) { if (mounted) Notificacion.err(context, 'Error: $e'); }
     finally { if (mounted) setState(() => load = false); }
   }
 
@@ -517,19 +436,16 @@ class _VistaPlanesState extends State<_VistaPlanes> {
     setState(() => load = true);
     try {
       items = await WiiDB.refresh(_colPlan);
-      if (mounted) Msg.ok(context, 'Planes actualizados 🔄');
-    } catch (e) { if (mounted) Msg.er(context, 'Error: $e'); }
+      if (mounted) Notificacion.ok(context, 'Planes actualizados 🔄');
+    } catch (e) { if (mounted) Notificacion.err(context, 'Error: $e'); }
     finally { if (mounted) setState(() => load = false); }
   }
 
   List<Map<String, dynamic>> get _filtrados {
     var list = List<Map<String, dynamic>>.from(items);
     if (filtro != 'todos') list = list.where((p) => p['estado'] == filtro || p['categoria'] == filtro).toList();
-    // Ordenar por prioridad
-    list.sort((a, b) {
-      final pa = {'alta': 0, 'media': 1, 'baja': 2};
-      return (pa[a['prioridad']] ?? 1).compareTo(pa[b['prioridad']] ?? 1);
-    });
+    const pa = {'alta': 0, 'media': 1, 'baja': 2};
+    list.sort((a, b) => (pa[a['prioridad']] ?? 1).compareTo(pa[b['prioridad']] ?? 1));
     return list;
   }
 
@@ -546,9 +462,11 @@ class _VistaPlanesState extends State<_VistaPlanes> {
   Future<void> _completar(Map<String, dynamic> p) async {
     final id = p['_id'] as String? ?? p['id'] as String? ?? '';
     if (id.isEmpty) return;
-
-    // Marcar todos los pasos como done (como en planes.js _completar)
-    final pasos = (p['pasos'] as List?)?.map((s) => {...(s as Map<String, dynamic>), 'done': true}).toList() ?? [];
+    final pasos = (p['pasos'] as List?)?.map((s) {
+      final m = Map<String, dynamic>.from(s as Map<String, dynamic>);
+      m['done'] = true;
+      return m;
+    }).toList() ?? [];
 
     setState(() {
       p['estado'] = 'completado';
@@ -561,9 +479,9 @@ class _VistaPlanesState extends State<_VistaPlanes> {
         'pasos': pasos,
         'completadoEn': DateTime.now().toIso8601String(),
       });
-      if (mounted) Msg.ok(context, '🎉 ¡Plan completado!');
+      if (mounted) Notificacion.ok(context, '🎉 ¡Plan completado!');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar();
     }
   }
@@ -574,9 +492,9 @@ class _VistaPlanesState extends State<_VistaPlanes> {
     setState(() => items.remove(p));
     try {
       await WiiDB.del(_colPlan, id);
-      if (mounted) Msg.ok(context, 'Plan eliminado ✅');
+      if (mounted) Notificacion.ok(context, 'Plan eliminado ✅');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar();
     }
   }
@@ -607,7 +525,7 @@ class _VistaPlanesState extends State<_VistaPlanes> {
         gradient: AppCSS.gDia,
         borderRadius: BorderRadius.circular(AppCSS.rM),
       ),
-      child: const Icon(Icons.rocket_launch, color: AppCSS.F, size: 22),
+      child: const Icon(Icons.rocket_launch, color: AppCSS.whi, size: 22),
     ),
     AppCSS.ghm,
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -617,63 +535,28 @@ class _VistaPlanesState extends State<_VistaPlanes> {
     IconButton(icon: const Icon(Icons.refresh, color: AppCSS.mco, size: 20), onPressed: _recargar),
     IconButton(
       icon: const Icon(Icons.add, color: AppCSS.mco, size: 20),
-      onPressed: () { /* TODO: Abrir modal nuevo plan */ },
+      onPressed: () { /* TODO */ },
     ),
   ]));
 
   Widget _stats() => Row(children: [
-    _statChip('${_countEst('activo')}', 'Activos', Icons.play_circle, const Color(0xFF0EBEFF)),
+    wiStat('${_countEst('activo')}', 'Activos', Icons.play_circle, const Color(0xFF0EBEFF)),
     AppCSS.ghs,
-    _statChip('${_countEst('pausado')}', 'Pausados', Icons.pause_circle, const Color(0xFFFFB800)),
+    wiStat('${_countEst('pausado')}', 'Pausados', Icons.pause_circle, const Color(0xFFFFB800)),
     AppCSS.ghs,
-    _statChip('${_countEst('completado')}', 'Hechos', Icons.check_circle, const Color(0xFF29C72E)),
+    wiStat('${_countEst('completado')}', 'Hechos', Icons.check_circle, const Color(0xFF29C72E)),
   ]);
-
-  Widget _statChip(String val, String lbl, IconData ico, Color clr) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: AppCSS.gCard,
-      child: Column(children: [
-        Icon(ico, size: 18, color: clr),
-        const SizedBox(height: 2),
-        Text(val, style: AppEs.bdS.copyWith(color: clr, fontWeight: FontWeight.w700)),
-        Text(lbl, style: AppEs.sm),
-      ]),
-    ),
-  );
 
   Widget _filtros() => SingleChildScrollView(
     scrollDirection: Axis.horizontal,
     child: Row(children: [
-      _filtroChip('todos', 'Todos', Icons.layers, AppCSS.mco),
-      ..._estPlan.entries.map((e) => _filtroChip(
-        e.key, e.value['lbl'] as String, e.value['ico'] as IconData, e.value['clr'] as Color,
+      wiFiltro(keyF: 'todos', lbl: 'Todos', ico: Icons.layers, clr: AppCSS.mco, sel: filtro, onTap: () => setState(() => filtro = 'todos')),
+      ..._estPlan.entries.map((e) => wiFiltro(
+        keyF: e.key, lbl: e.value['lbl'] as String, ico: e.value['ico'] as IconData,
+        clr: e.value['clr'] as Color, sel: filtro, onTap: () => setState(() => filtro = e.key),
       )),
     ]),
   );
-
-  Widget _filtroChip(String key, String lbl, IconData ico, Color clr) {
-    final sel = filtro == key;
-    return GestureDetector(
-      onTap: () => setState(() => filtro = key),
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: sel ? clr.withOpacity(0.15) : AppCSS.F.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(AppCSS.rS),
-          border: Border.all(color: sel ? clr : AppCSS.brd.withOpacity(0.5)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(ico, size: 14, color: sel ? clr : AppCSS.grs),
-          const SizedBox(width: 4),
-          Text(lbl, style: AppEs.sm.copyWith(
-            color: sel ? clr : AppCSS.tx2, fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
-          )),
-        ]),
-      ),
-    );
-  }
 
   Widget _lista() {
     final data = _filtrados;
@@ -692,18 +575,15 @@ class _VistaPlanesState extends State<_VistaPlanes> {
     final cat = _catPlan[p['categoria']] ?? _catPlan['otro']!;
     final est = _estPlan[p['estado']] ?? _estPlan['activo']!;
     final prio = _prioPlan[p['prioridad']] ?? _prioPlan['media']!;
-    final clr = p['color'] != null
-        ? Color(int.parse('0xFF${(p['color'] as String).replaceAll('#', '')}'))
-        : cat['clr'] as Color;
+    final clr = wicoHx(p['color'] as String?, cat['clr'] as Color);
     final completado = p['estado'] == 'completado';
     final progreso = _pct(p);
     final pasos = (p['pasos'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final pasosDone = pasos.where((s) => s['done'] == true).length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppCSS.s),
       decoration: BoxDecoration(
-        color: completado ? AppCSS.F.withOpacity(0.5) : AppCSS.F.withOpacity(0.7),
+        color: completado ? AppCSS.whi.withOpacity(0.5) : AppCSS.whi.withOpacity(0.7),
         borderRadius: BorderRadius.circular(AppCSS.rL),
         border: Border.all(color: clr.withOpacity(0.3)),
       ),
@@ -711,15 +591,11 @@ class _VistaPlanesState extends State<_VistaPlanes> {
         Padding(
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Header
             Row(children: [
               Container(
                 width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: clr,
-                  borderRadius: BorderRadius.circular(AppCSS.rS),
-                ),
-                child: Icon(cat['ico'] as IconData, size: 20, color: AppCSS.F),
+                decoration: BoxDecoration(color: clr, borderRadius: BorderRadius.circular(AppCSS.rS)),
+                child: Icon(cat['ico'] as IconData, size: 20, color: AppCSS.whi),
               ),
               AppCSS.ghs,
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -730,49 +606,42 @@ class _VistaPlanesState extends State<_VistaPlanes> {
                 )),
                 const SizedBox(height: 4),
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  _badge(est['ico'] as IconData, est['lbl'] as String, est['clr'] as Color),
-                  _badge(prio['ico'] as IconData, prio['lbl'] as String, prio['clr'] as Color),
-                  _badge(cat['ico'] as IconData, cat['lbl'] as String, clr),
+                  wiBox(est['ico'] as IconData, est['lbl'] as String, est['clr'] as Color),
+                  wiBox(prio['ico'] as IconData, prio['lbl'] as String, prio['clr'] as Color),
+                  wiBox(cat['ico'] as IconData, cat['lbl'] as String, clr),
                 ]),
               ])),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 18, color: AppCSS.grs),
-                onSelected: (v) {
-                  if (v == 'edit') { /* TODO: Editar plan */ }
-                  if (v == 'del') _confirmarEliminar(p);
+                onSelected: (v) async {
+                  if (v == 'edit') { /* TODO */ }
+                  if (v == 'del') {
+                    final ok = await Mensaje(context, msg: '¿Eliminar "${p['titulo']}"?');
+                    if (ok == true) _eliminar(p);
+                  }
                 },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'edit', child: Row(children: [
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Row(children: [
                     Icon(Icons.edit, size: 16, color: AppCSS.grs), SizedBox(width: 6), Text('Editar'),
                   ])),
-                  const PopupMenuItem(value: 'del', child: Row(children: [
-                    Icon(Icons.delete, size: 16, color: AppCSS.cTar), SizedBox(width: 6), Text('Eliminar'),
+                  PopupMenuItem(value: 'del', child: Row(children: [
+                    Icon(Icons.delete, size: 16, color: AppCSS.err), SizedBox(width: 6), Text('Eliminar'),
                   ])),
                 ],
               ),
             ]),
-            // Descripción
             if (p['descripcion'] != null && (p['descripcion'] as String).isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(p['descripcion'], style: AppEs.sm, maxLines: 2, overflow: TextOverflow.ellipsis),
               ),
-            // Progreso
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Progreso', style: AppEs.sm.copyWith(fontWeight: FontWeight.w500)),
               Text('$progreso%', style: AppEs.sm.copyWith(color: clr, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progreso / 100, minHeight: 6,
-                backgroundColor: AppCSS.brd.withOpacity(0.3),
-                valueColor: AlwaysStoppedAnimation<Color>(clr),
-              ),
-            ),
-            // Pasos preview
+            wiProgress(progreso / 100, clr),
             if (pasos.isNotEmpty) ...[
               const SizedBox(height: 8),
               ...pasos.take(3).map((s) => Padding(
@@ -794,7 +663,6 @@ class _VistaPlanesState extends State<_VistaPlanes> {
             ],
           ]),
         ),
-        // Footer: fechas + completar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(border: Border(top: BorderSide(color: AppCSS.brd.withOpacity(0.3)))),
@@ -802,15 +670,15 @@ class _VistaPlanesState extends State<_VistaPlanes> {
             if (p['inicio'] != null && (p['inicio'] as String).isNotEmpty) ...[
               const Icon(Icons.play_arrow, size: 12, color: AppCSS.tx3),
               const SizedBox(width: 2),
-              Text(_fmtFecha(p['inicio']), style: AppEs.sm),
+              Text(wiFecha(p['inicio'], anio: true), style: AppEs.sm),
               const SizedBox(width: 8),
             ],
             if (p['meta'] != null && (p['meta'] as String).isNotEmpty) ...[
               const Icon(Icons.flag, size: 12, color: AppCSS.tx3),
               const SizedBox(width: 2),
-              Text(_fmtFecha(p['meta']), style: AppEs.sm),
+              Text(wiFecha(p['meta'], anio: true), style: AppEs.sm),
               const SizedBox(width: 4),
-              _diasRest(p['meta']),
+              diasRestantes(p['meta']),
             ],
             const Spacer(),
             if (!completado)
@@ -834,59 +702,5 @@ class _VistaPlanesState extends State<_VistaPlanes> {
         ),
       ]),
     );
-  }
-
-  Widget _badge(IconData ico, String lbl, Color clr) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(color: clr.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(ico, size: 10, color: clr),
-      const SizedBox(width: 3),
-      Text(lbl, style: AppEs.sm.copyWith(color: clr)),
-    ]),
-  );
-
-  Widget _diasRest(String f) {
-    try {
-      final hoy = DateTime.now();
-      final hoyStr = '${hoy.year}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}';
-      final diff = DateTime.parse(f).difference(DateTime.parse(hoyStr)).inDays;
-      if (diff < 0) {
-        return Text('${-diff}d atrás', style: AppEs.sm.copyWith(color: AppCSS.err, fontWeight: FontWeight.w600));
-      } else if (diff == 0) {
-        return Text('Hoy', style: AppEs.sm.copyWith(color: AppCSS.mco, fontWeight: FontWeight.w600));
-      } else {
-        return Text('${diff}d', style: AppEs.sm.copyWith(color: AppCSS.ok, fontWeight: FontWeight.w600));
-      }
-    } catch (_) { return const SizedBox.shrink(); }
-  }
-
-  Future<void> _confirmarEliminar(Map<String, dynamic> p) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Eliminar plan', style: AppEs.h3),
-        content: Text('¿Eliminar "${p['titulo']}"?', style: AppEs.bd),
-        backgroundColor: AppCSS.F,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs))),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppCSS.err,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS))),
-            child: Text('Eliminar', style: AppEs.bdS.copyWith(color: AppCSS.F))),
-        ],
-      ),
-    );
-    if (ok == true) _eliminar(p);
-  }
-
-  String _fmtFecha(String f) {
-    try {
-      final d = DateTime.parse(f);
-      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      return '${d.day} ${meses[d.month - 1]} ${d.year}';
-    } catch (_) { return f; }
   }
 }

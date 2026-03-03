@@ -41,7 +41,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
       _u = await _obtenerUConCache();
       if (_u?.foto?.isNotEmpty == true) _fotoCtrl.text = _u!.foto!;
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _cargandoU = false);
     }
@@ -82,7 +82,8 @@ class _PantallaConfigState extends State<PantallaConfig> {
   Future<Usuario?> _deStorage() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final j = p.getString(_kU), f = p.getString(_kF);
+      final j = p.getString(_kU);
+      final f = p.getString(_kF);
       if (j == null || f == null) return null;
       _fCache = DateTime.parse(f);
       return Usuario.fromMap(jsonDecode(j));
@@ -145,7 +146,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
         gradient: AppCSS.gSky,
         borderRadius: BorderRadius.circular(AppCSS.rM),
       ),
-      child: const Icon(Icons.settings, color: AppCSS.F, size: 22),
+      child: const Icon(Icons.settings, color: AppCSS.whi, size: 22),
     ),
     AppCSS.ghm,
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -163,7 +164,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
     child: Container(
       width: 100, height: 100,
       decoration: BoxDecoration(
-        shape: BoxShape.circle, color: AppCSS.F,
+        shape: BoxShape.circle, color: AppCSS.whi,
         boxShadow: [BoxShadow(color: AppCSS.mco.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: ClipOval(
@@ -177,9 +178,9 @@ class _PantallaConfigState extends State<PantallaConfig> {
 
   Widget _fotoDefault() => Container(
     width: 100, height: 100,
-    decoration: BoxDecoration(shape: BoxShape.circle, color: AppCSS.wb),
+    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppCSS.wb),
     child: ClipOval(
-      child: Image.asset(AppCSS.lgSmile, width: 100, height: 100, fit: BoxFit.cover,
+      child: Image.asset(AppCSS.lgPath, width: 100, height: 100, fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => const Icon(Icons.account_circle, size: 60, color: AppCSS.mco)),
     ),
   );
@@ -254,7 +255,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
       label: const Text('Cerrar Sesión'),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppCSS.err,
-        foregroundColor: AppCSS.F,
+        foregroundColor: AppCSS.whi,
         padding: const EdgeInsets.symmetric(vertical: AppCSS.m),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
       ),
@@ -297,10 +298,10 @@ class _PantallaConfigState extends State<PantallaConfig> {
         await _aStorage(u);
         _uCache = u; _fCache = DateTime.now();
         setState(() => _u = u);
-        Msg.ok(context, 'Datos actualizados 🔄');
+        Notificacion.ok(context, 'Datos actualizados 🔄');
       }
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _cargandoU = false);
     }
@@ -309,7 +310,10 @@ class _PantallaConfigState extends State<PantallaConfig> {
   // 📷 Actualizar foto _______
   Future<void> _actualizarFoto() async {
     final url = _fotoCtrl.text.trim();
-    if (url.isEmpty) return Msg.er(context, 'Ingresa un enlace válido');
+    if (url.isEmpty) {
+      if (mounted) Notificacion.err(context, 'Ingresa un enlace válido');
+      return;
+    }
 
     setState(() => _cargando = true);
     try {
@@ -327,10 +331,10 @@ class _PantallaConfigState extends State<PantallaConfig> {
         _uCache = uAct; _fCache = DateTime.now();
         setState(() => _u = uAct);
         _fotoCtrl.clear();
-        Msg.ok(context, '¡Foto actualizada! 📷');
+        if (mounted) Notificacion.ok(context, '¡Foto actualizada! 📷');
       }
     } catch (e) {
-      Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
@@ -343,7 +347,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
       builder: (ctx) => AlertDialog(
         title: Text('Cerrar Sesión', style: AppEs.h3),
         content: Text('¿Estás seguro que quieres cerrar sesión?', style: AppEs.bd),
-        backgroundColor: AppCSS.F,
+        backgroundColor: AppCSS.whi,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
         actions: [
           TextButton(
@@ -356,7 +360,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
               backgroundColor: AppCSS.err,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS)),
             ),
-            child: Text('Cerrar Sesión', style: AppEs.bdS.copyWith(color: AppCSS.F)),
+            child: Text('Cerrar Sesión', style: AppEs.bdS.copyWith(color: AppCSS.whi)),
           ),
         ],
       ),
@@ -372,7 +376,7 @@ class _PantallaConfigState extends State<PantallaConfig> {
             (r) => false);
         }
       } catch (e) {
-        if (mounted) Msg.er(context, 'Error: $e');
+        if (mounted) Notificacion.err(context, 'Error: $e');
       }
     }
   }

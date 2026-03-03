@@ -36,15 +36,15 @@ class PantallaInicio extends StatelessWidget {
   // 👋 Hero _______
   static Widget _hero() => Container(
     padding: const EdgeInsets.all(AppCSS.l),
-    decoration: AppCSS.glass,
+    decoration: AppCSS.gls1,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text(Wi.hi(), style: AppEs.bd),
+        Text(Saludar(), style: AppEs.bd),
         const SizedBox(width: 4),
         const Text('👋', style: TextStyle(fontSize: 22)),
       ]),
       AppCSS.gs,
-      Wi.gTxt('Organiza tu semana', sz: 22),
+      gdTexto('Organiza tu semana', sz: 22),
       Text('como un profesional', style: AppEs.h3.copyWith(color: AppCSS.mco)),
       AppCSS.gm,
       Text(
@@ -53,7 +53,7 @@ class PantallaInicio extends StatelessWidget {
       ),
       AppCSS.gm,
       Row(children: [
-        Text(Wi.dia(), style: AppEs.lbl.copyWith(color: AppCSS.mco)),
+        Text(wiDia(), style: AppEs.lbl.copyWith(color: AppCSS.mco)),
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -79,21 +79,21 @@ class PantallaInicio extends StatelessWidget {
     mainAxisSpacing: AppCSS.s, crossAxisSpacing: AppCSS.s,
     childAspectRatio: 0.85,
     children: const [
-      Stat(val: '7', lbl: 'Días', ico: Icons.calendar_today, color: AppCSS.cHor),
-      Stat(val: '100%', lbl: 'Gratis', ico: Icons.favorite, color: AppCSS.cTar),
-      Stat(val: '2026', lbl: 'Actual', ico: Icons.update, color: AppCSS.cPln),
-      Stat(val: '24h', lbl: 'Organiza', ico: Icons.schedule, color: AppCSS.cLog),
+      Stat(val: '7', lbl: 'Días', ico: Icons.calendar_today, color: AppCSS.bg1),
+      Stat(val: '100%', lbl: 'Gratis', ico: Icons.favorite, color: AppCSS.bg4),
+      Stat(val: '2026', lbl: 'Actual', ico: Icons.update, color: AppCSS.bg2),
+      Stat(val: '24h', lbl: 'Organiza', ico: Icons.schedule, color: AppCSS.bg6),
     ],
   );
 
   // 🧩 Features _______
   static const _feat = [
-    {'ico': Icons.calendar_month, 'nom': 'Horario', 'desc': 'Visualiza tu semana completa', 'clr': AppCSS.cHor},
-    {'ico': Icons.checklist, 'nom': 'Planes', 'desc': 'Organiza tus pendientes', 'clr': AppCSS.cPln},
-    {'ico': Icons.view_week, 'nom': 'Semanal', 'desc': 'Vista global de 7 días', 'clr': AppCSS.cSem},
-    {'ico': Icons.folder_open, 'nom': 'Tareas', 'desc': 'Proyectos por cerrar', 'clr': AppCSS.cTar},
-    {'ico': Icons.calendar_view_month, 'nom': 'Mes', 'desc': 'Calendario mensual', 'clr': AppCSS.cMes},
-    {'ico': Icons.emoji_events, 'nom': 'Logros', 'desc': 'Celebra tu progreso', 'clr': AppCSS.cLog},
+    {'ico': Icons.calendar_month, 'nom': 'Horario', 'desc': 'Visualiza tu semana completa', 'clr': AppCSS.bg1},
+    {'ico': Icons.checklist, 'nom': 'Planes', 'desc': 'Organiza tus pendientes', 'clr': AppCSS.bg2},
+    {'ico': Icons.view_week, 'nom': 'Semanal', 'desc': 'Vista global de 7 días', 'clr': AppCSS.bg3},
+    {'ico': Icons.folder_open, 'nom': 'Tareas', 'desc': 'Proyectos por cerrar', 'clr': AppCSS.bg4},
+    {'ico': Icons.calendar_view_month, 'nom': 'Mes', 'desc': 'Calendario mensual', 'clr': AppCSS.bg5},
+    {'ico': Icons.emoji_events, 'nom': 'Logros', 'desc': 'Celebra tu progreso', 'clr': AppCSS.bg6},
   ];
 
   static Widget _featGrid() => GridView.count(
@@ -104,7 +104,7 @@ class PantallaInicio extends StatelessWidget {
     childAspectRatio: 1.4,
     children: _feat.map((f) => Container(
       padding: const EdgeInsets.all(12),
-      decoration: AppCSS.gCard,
+      decoration: AppCSS.gls2,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
         Container(
           padding: const EdgeInsets.all(8),
@@ -139,7 +139,7 @@ class PantallaInicio extends StatelessWidget {
             gradient: AppCSS.gSky,
             borderRadius: BorderRadius.circular(AppCSS.rM),
           ),
-          child: Icon(b['ico'] as IconData, color: AppCSS.F, size: 22),
+          child: Icon(b['ico'] as IconData, color: AppCSS.whi, size: 22),
         ),
         AppCSS.ghm,
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -160,37 +160,37 @@ class PantallaInicio extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppCSS.rXL),
     ),
     child: Column(children: [
-      const Icon(Icons.calendar_month, size: 40, color: AppCSS.F),
+      const Icon(Icons.calendar_month, size: 40, color: AppCSS.whi),
       AppCSS.gs,
       Text('¿Listo para organizar\ntu semana?', textAlign: TextAlign.center,
-        style: AppEs.h3.copyWith(color: AppCSS.F)),
+        style: AppEs.h3.copyWith(color: AppCSS.whi)),
       AppCSS.gs,
       Text('Empieza ahora, es completamente gratis', textAlign: TextAlign.center,
-        style: AppEs.sm.copyWith(color: AppCSS.F.withOpacity(0.8))),
+        style: AppEs.sm.copyWith(color: AppCSS.whi.withOpacity(0.8))),
       AppCSS.gm,
       Wrap(spacing: 6, runSpacing: 6, alignment: WrapAlignment.center,
         children: _feat.map((f) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppCSS.F.withOpacity(0.2),
+            color: AppCSS.whi.withOpacity(0.2),
             borderRadius: BorderRadius.circular(AppCSS.rS),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(f['ico'] as IconData, size: 14, color: AppCSS.F),
+            Icon(f['ico'] as IconData, size: 14, color: AppCSS.whi),
             const SizedBox(width: 4),
-            Text(f['nom'] as String, style: AppEs.sm.copyWith(color: AppCSS.F)),
+            Text(f['nom'] as String, style: AppEs.sm.copyWith(color: AppCSS.whi)),
           ]),
         )).toList(),
       ),
       AppCSS.gm,
       Text('${wii.autor} · ${wii.app} ${wii.version} © ${wii.lanzamiento}',
-        style: AppEs.sm.copyWith(color: AppCSS.F.withOpacity(0.6))),
+        style: AppEs.sm.copyWith(color: AppCSS.whi.withOpacity(0.6))),
     ]),
   );
 
   // 📌 Título sección _______
   static Widget _secTit(String t1, String t2) => Row(children: [
     Text('$t1 ', style: AppEs.h3),
-    Wi.gTxt(t2, sz: 18),
+    gdTexto(t2, sz: 18),
   ]);
 }

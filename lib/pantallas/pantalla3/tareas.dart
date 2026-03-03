@@ -55,7 +55,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
     try {
       items = await WiiDB.get(_col);
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -65,9 +65,9 @@ class _PantallaTareasState extends State<PantallaTareas> {
     setState(() => load = true);
     try {
       items = await WiiDB.refresh(_col);
-      if (mounted) Msg.ok(context, 'Tareas actualizadas 🔄');
+      if (mounted) Notificacion.ok(context, 'Tareas actualizadas 🔄');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -78,7 +78,6 @@ class _PantallaTareasState extends State<PantallaTareas> {
 
   int get _total => items.length;
   int get _done => items.where((t) => t['estado'] == 'hecho').length;
-  int get _pct => _total > 0 ? (_done * 100 ~/ _total) : 0;
   int _countEst(String est) => items.where((t) => (t['estado'] ?? 'pendiente') == est).length;
 
   Future<void> _mover(Map<String, dynamic> item, String dir) async {
@@ -88,7 +87,6 @@ class _PantallaTareasState extends State<PantallaTareas> {
     final nuevo = dir == 'next' ? _estNext[est]! : _estPrev[est]!;
     if (nuevo == est) return;
 
-    // Historial como en la web
     final hist = List<Map<String, dynamic>>.from(item['historial'] ?? []);
     hist.add({'de': est, 'a': nuevo, 'fecha': DateTime.now().toIso8601String()});
 
@@ -107,14 +105,14 @@ class _PantallaTareasState extends State<PantallaTareas> {
 
       if (mounted) {
         final emoji = {'pendiente': '⏳', 'progreso': '🔄', 'revision': '👀', 'hecho': '✅'}[nuevo] ?? '';
-        Msg.ok(context, '$emoji → ${(_estados[nuevo]?['lbl']) ?? nuevo}');
+        Notificacion.ok(context, '$emoji → ${(_estados[nuevo]?['lbl']) ?? nuevo}');
       }
     } catch (e) {
       setState(() {
         item['estado'] = est;
         hist.removeLast();
       });
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     }
   }
 
@@ -145,7 +143,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
         item['estado'] = estAnterior;
         hist.removeLast();
       });
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     }
   }
 
@@ -155,9 +153,9 @@ class _PantallaTareasState extends State<PantallaTareas> {
     setState(() => items.remove(item));
     try {
       await WiiDB.del(_col, id);
-      if (mounted) Msg.ok(context, 'Tarea eliminada ✅');
+      if (mounted) Notificacion.ok(context, 'Tarea eliminada ✅');
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
       _cargar();
     }
   }
@@ -185,7 +183,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
           gradient: const LinearGradient(colors: [Color(0xFFFF5C69), Color(0xFFFFB800)]),
           borderRadius: BorderRadius.circular(AppCSS.rM),
         ),
-        child: const Icon(Icons.check_circle, color: AppCSS.F, size: 22),
+        child: const Icon(Icons.check_circle, color: AppCSS.whi, size: 22),
       ),
       AppCSS.ghm,
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -198,9 +196,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
       ),
       IconButton(
         icon: const Icon(Icons.add, color: AppCSS.mco),
-        onPressed: () {
-          // TODO: Abrir modal nueva tarea
-        },
+        onPressed: () { /* TODO: Abrir modal nueva tarea */ },
       ),
     ])),
   );
@@ -214,7 +210,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
       return Expanded(child: Container(
         margin: EdgeInsets.only(right: isLast ? 0 : 6),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: AppCSS.gCard,
+        decoration: AppCSS.gls2,
         child: Column(children: [
           Icon(e.value['ico'] as IconData, size: 16, color: clr),
           const SizedBox(height: 2),
@@ -231,53 +227,18 @@ class _PantallaTareasState extends State<PantallaTareas> {
     scrollDirection: Axis.horizontal,
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     child: Row(children: [
-      _filtroChip('todas', 'Todas', Icons.layers, AppCSS.mco, _total),
-      ..._estados.entries.map((e) => _filtroChip(
-        e.key,
-        e.value['lbl'] as String,
-        e.value['ico'] as IconData,
-        e.value['clr'] as Color,
-        _countEst(e.key),
+      wiFiltro(keyF: 'todas', lbl: 'Todas', ico: Icons.layers, clr: AppCSS.mco, sel: filtro, onTap: () => setState(() => filtro = 'todas'), count: _total),
+      ..._estados.entries.map((e) => wiFiltro(
+        keyF: e.key,
+        lbl: e.value['lbl'] as String,
+        ico: e.value['ico'] as IconData,
+        clr: e.value['clr'] as Color,
+        sel: filtro,
+        onTap: () => setState(() => filtro = e.key),
+        count: _countEst(e.key),
       )),
     ]),
   );
-
-  Widget _filtroChip(String key, String lbl, IconData ico, Color clr, int count) {
-    final sel = filtro == key;
-    return GestureDetector(
-      onTap: () => setState(() => filtro = key),
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: sel ? clr.withOpacity(0.15) : AppCSS.F.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(AppCSS.rS),
-          border: Border.all(color: sel ? clr : AppCSS.brd.withOpacity(0.5)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(ico, size: 14, color: sel ? clr : AppCSS.grs),
-          const SizedBox(width: 4),
-          Text(lbl, style: AppEs.sm.copyWith(
-            color: sel ? clr : AppCSS.tx2,
-            fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
-          )),
-          if (count > 0) ...[
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: sel ? clr : AppCSS.grs.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text('$count', style: AppEs.sm.copyWith(
-                color: sel ? AppCSS.F : AppCSS.tx3, fontSize: 10,
-              )),
-            ),
-          ],
-        ]),
-      ),
-    );
-  }
 
   Widget _lista() {
     final data = _filtradas;
@@ -288,18 +249,16 @@ class _PantallaTareasState extends State<PantallaTareas> {
             : 'Sin tareas en\n${_estados[filtro]?['lbl'] ?? filtro}',
         ico: Icons.checklist,
         txtBtn: 'Nueva tarea',
-        onTap: () {
-          // TODO: Abrir modal nueva tarea
-        },
+        onTap: () { /* TODO: Abrir modal nueva tarea */ },
       );
     }
 
-    // Ordenar: prioridad > estado (igual que web)
+    // Ordenar: prioridad > estado
     final sorted = List<Map<String, dynamic>>.from(data)..sort((a, b) {
       final pA = _prioSort[a['prio']] ?? 1;
       final pB = _prioSort[b['prio']] ?? 1;
       if (pA != pB) return pA.compareTo(pB);
-      final estOrder = {'pendiente': 0, 'progreso': 1, 'revision': 2, 'hecho': 3};
+      const estOrder = {'pendiente': 0, 'progreso': 1, 'revision': 2, 'hecho': 3};
       final eA = estOrder[a['estado']] ?? 0;
       final eB = estOrder[b['estado']] ?? 0;
       return eA.compareTo(eB);
@@ -317,14 +276,11 @@ class _PantallaTareasState extends State<PantallaTareas> {
     final tipo = _tipos[t['tipo']] ?? _tipos['otros']!;
     final est = _estados[t['estado']] ?? _estados['pendiente']!;
     final prio = _prios[t['prio']] ?? _prios['media']!;
-    final clr = t['color'] != null
-        ? Color(int.parse('0xFF${(t['color'] as String).replaceAll('#', '')}'))
-        : tipo['clr'] as Color;
+    final clr = wicoHx(t['color'] as String?, tipo['clr'] as Color);
     final done = t['estado'] == 'hecho';
     final canPrev = t['estado'] != 'pendiente';
     final canNext = t['estado'] != 'hecho';
 
-    // Subtareas
     final subs = (t['subtareas'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final subsDone = subs.where((s) => s['done'] == true).length;
     final subsPct = subs.isNotEmpty ? (subsDone / subs.length) : (done ? 1.0 : 0.0);
@@ -342,13 +298,14 @@ class _PantallaTareasState extends State<PantallaTareas> {
         child: const Icon(Icons.delete, color: AppCSS.err),
       ),
       confirmDismiss: (_) async {
-        final ok = await _confirmarEliminar(t);
+        final ok = await Mensaje(context, msg: '¿Eliminar "${t['titulo']}"?');
         return ok;
       },
+      onDismissed: (_) => _eliminar(t),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppCSS.s),
         decoration: BoxDecoration(
-          color: done ? AppCSS.F.withOpacity(0.5) : AppCSS.F.withOpacity(0.7),
+          color: done ? AppCSS.whi.withOpacity(0.5) : AppCSS.whi.withOpacity(0.7),
           borderRadius: BorderRadius.circular(AppCSS.rL),
           border: Border.all(color: done ? AppCSS.brd.withOpacity(0.3) : clr.withOpacity(0.3)),
         ),
@@ -381,8 +338,8 @@ class _PantallaTareasState extends State<PantallaTareas> {
                 const SizedBox(height: 4),
                 // Tags
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  _tag(tipo['ico'] as IconData, tipo['lbl'] as String, clr),
-                  _tagDot(prio['lbl'] as String, prio['clr'] as Color),
+                  wiBox(tipo['ico'] as IconData, tipo['lbl'] as String, clr),
+                  wiBoxs(prio['lbl'] as String, prio['clr'] as Color),
                   if (t['fecha'] != null && (t['fecha'] as String).isNotEmpty)
                     _tagFecha(t['fecha']),
                 ]),
@@ -411,28 +368,19 @@ class _PantallaTareasState extends State<PantallaTareas> {
                   if (subs.length > 3)
                     Text('+${subs.length - 3} más', style: AppEs.sm.copyWith(color: AppCSS.tx3)),
                   const SizedBox(height: 4),
-                  // Barra progreso
                   Row(children: [
-                    Expanded(child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: subsPct,
-                        minHeight: 4,
-                        backgroundColor: AppCSS.brd.withOpacity(0.3),
-                        valueColor: AlwaysStoppedAnimation<Color>(clr),
-                      ),
-                    )),
+                    Expanded(child: wiProgress(subsPct, clr, h: 4)),
                     const SizedBox(width: 6),
                     Text('$subsDone/${subs.length}', style: AppEs.sm.copyWith(fontSize: 10)),
                   ]),
                 ],
               ])),
-              // Menu eliminar
+              // Menu
               IconButton(
                 icon: const Icon(Icons.more_vert, size: 18, color: AppCSS.grs),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 onPressed: () async {
-                  final ok = await _confirmarEliminar(t);
+                  final ok = await Mensaje(context, msg: '¿Eliminar "${t['titulo']}"?');
                   if (ok == true) _eliminar(t);
                 },
               ),
@@ -495,22 +443,6 @@ class _PantallaTareasState extends State<PantallaTareas> {
     );
   }
 
-  Widget _tag(IconData ico, String lbl, Color clr) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(color: clr.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(ico, size: 10, color: clr),
-      const SizedBox(width: 3),
-      Text(lbl, style: AppEs.sm.copyWith(color: clr)),
-    ]),
-  );
-
-  Widget _tagDot(String lbl, Color clr) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Container(width: 8, height: 8, decoration: BoxDecoration(color: clr, shape: BoxShape.circle)),
-    const SizedBox(width: 3),
-    Text(lbl, style: AppEs.sm),
-  ]);
-
   Widget _tagFecha(String f) {
     final hoy = DateTime.now();
     final hoyStr = '${hoy.year}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}';
@@ -529,7 +461,7 @@ class _PantallaTareasState extends State<PantallaTareas> {
           color: vencido ? AppCSS.err : (esHoy ? AppCSS.mco : AppCSS.tx3)),
         const SizedBox(width: 2),
         Text(
-          esHoy ? 'Hoy' : (vencido ? 'Vencido ${-diff!}d' : _fmtFecha(f)),
+          esHoy ? 'Hoy' : (vencido ? 'Vencido ${-diff}d' : wiFecha(f)),
           style: AppEs.sm.copyWith(
             color: vencido ? AppCSS.err : (esHoy ? AppCSS.mco : AppCSS.tx3),
             fontWeight: (vencido || esHoy) ? FontWeight.w600 : FontWeight.w400,
@@ -537,37 +469,5 @@ class _PantallaTareasState extends State<PantallaTareas> {
         ),
       ]),
     );
-  }
-
-  Future<bool?> _confirmarEliminar(Map<String, dynamic> t) => showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text('Eliminar tarea', style: AppEs.h3),
-      content: Text('¿Eliminar "${t['titulo']}"?', style: AppEs.bd),
-      backgroundColor: AppCSS.F,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rM)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: Text('Cancelar', style: AppEs.bdS.copyWith(color: AppCSS.grs)),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppCSS.err,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppCSS.rS)),
-          ),
-          child: Text('Eliminar', style: AppEs.bdS.copyWith(color: AppCSS.F)),
-        ),
-      ],
-    ),
-  );
-
-  String _fmtFecha(String f) {
-    try {
-      final d = DateTime.parse(f);
-      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      return '${d.day} ${meses[d.month - 1]}';
-    } catch (_) { return f; }
   }
 }

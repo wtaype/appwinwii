@@ -20,9 +20,9 @@ class _PantallaHorarioState extends State<PantallaHorario> with SingleTickerProv
   late final TabController tabC;
 
   static const _tabs = [
-    {'ico': Icons.calendar_today, 'txt': 'Horario', 'clr': AppCSS.cHor},
-    {'ico': Icons.view_week, 'txt': 'Semanal', 'clr': AppCSS.cSem},
-    {'ico': Icons.calendar_view_month, 'txt': 'Mes', 'clr': AppCSS.cMes},
+    {'ico': Icons.calendar_today, 'txt': 'Horario', 'clr': AppCSS.bg1},
+    {'ico': Icons.view_week, 'txt': 'Semanal', 'clr': AppCSS.bg3},
+    {'ico': Icons.calendar_view_month, 'txt': 'Mes', 'clr': AppCSS.bg5},
   ];
 
   @override
@@ -39,7 +39,7 @@ class _PantallaHorarioState extends State<PantallaHorario> with SingleTickerProv
         margin: const EdgeInsets.fromLTRB(20, 10, 20, 5),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppCSS.F.withOpacity(0.7),
+          color: AppCSS.whi.withOpacity(0.7),
           borderRadius: BorderRadius.circular(AppCSS.rM),
           border: Border.all(color: AppCSS.brd.withOpacity(0.5)),
         ),
@@ -49,7 +49,7 @@ class _PantallaHorarioState extends State<PantallaHorario> with SingleTickerProv
             gradient: AppCSS.gSky,
             borderRadius: BorderRadius.circular(AppCSS.rS),
           ),
-          labelColor: AppCSS.F,
+          labelColor: AppCSS.whi,
           unselectedLabelColor: AppCSS.tx2,
           labelStyle: AppEs.bdS.copyWith(fontWeight: FontWeight.w600),
           unselectedLabelStyle: AppEs.bdS,
@@ -139,7 +139,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
       _todos = await WiiDB.get(_col);
       _filtrarDia();
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -151,7 +151,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
       _todos = await WiiDB.refresh(_col);
       _filtrarDia();
     } catch (e) {
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => load = false);
     }
@@ -253,7 +253,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
       await WiiDB.toggle(_col, id, 'completado', nuevo);
     } catch (e) {
       setState(() => ev['completado'] = !nuevo);
-      if (mounted) Msg.er(context, 'Error: $e');
+      if (mounted) Notificacion.err(context, 'Error: $e');
     }
   }
 
@@ -284,7 +284,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
         color: _esHoy ? null : AppCSS.grs.withOpacity(0.2),
         borderRadius: BorderRadius.circular(AppCSS.rM),
       ),
-      child: Icon(Icons.calendar_today, color: _esHoy ? AppCSS.F : AppCSS.grs, size: 22),
+      child: Icon(Icons.calendar_today, color: _esHoy ? AppCSS.whi : AppCSS.grs, size: 22),
     ),
     AppCSS.ghm,
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -359,9 +359,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
 
   Widget _eventoCard(Map<String, dynamic> ev) {
     final tipo = _tipos[ev['tipo']] ?? _tipos['otro']!;
-    final clr = ev['color'] != null
-        ? Color(int.parse('0xFF${(ev['color'] as String).replaceAll('#', '')}'))
-        : tipo['clr'] as Color;
+    final clr = wicoHx(ev['color'] as String?, tipo['clr'] as Color);
     final done = ev['completado'] == true;
     final hi = ev['horaInicio'] as String? ?? '';
     final hf = ev['horaFin'] as String? ?? '';
@@ -374,7 +372,7 @@ class _VistaHorarioState extends State<_VistaHorario> {
         onTap: () => _toggleComp(ev),
         child: Container(
           decoration: BoxDecoration(
-            color: done ? AppCSS.F.withOpacity(0.5) : AppCSS.F.withOpacity(0.7),
+            color: done ? AppCSS.whi.withOpacity(0.5) : AppCSS.whi.withOpacity(0.7),
             borderRadius: BorderRadius.circular(AppCSS.rL),
             border: Border.all(color: done ? AppCSS.brd.withOpacity(0.3) : clr.withOpacity(0.3)),
           ),
@@ -471,22 +469,14 @@ class _VistaHorarioState extends State<_VistaHorario> {
       const SizedBox(width: 3),
       Text('$done/$total subtareas', style: AppEs.sm.copyWith(fontSize: 10)),
       const SizedBox(width: 4),
-      Expanded(child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: LinearProgressIndicator(
-          value: total > 0 ? done / total : 0,
-          minHeight: 3,
-          backgroundColor: AppCSS.brd.withOpacity(0.3),
-          valueColor: const AlwaysStoppedAnimation<Color>(AppCSS.ok),
-        ),
-      )),
+      Expanded(child: wiProgress(total > 0 ? done / total : 0, AppCSS.ok, h: 3)),
     ]);
   }
 
   Widget _resumen() => Glass(child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
     _resStat('${eventos.length}', 'Eventos', Icons.event, AppCSS.mco),
-    _resStat(_horasStr, 'Horas', Icons.schedule, AppCSS.cHor),
-    _resStat('$_pct%', 'Hecho', Icons.check_circle, AppCSS.cPln),
+    _resStat(_horasStr, 'Horas', Icons.schedule, AppCSS.bg1),
+    _resStat('$_pct%', 'Hecho', Icons.check_circle, AppCSS.bg2),
   ]));
 
   Widget _resStat(String val, String lbl, IconData ico, Color clr) => Column(children: [

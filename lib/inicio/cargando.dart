@@ -15,20 +15,15 @@ class _PantallaCargandoState extends State<PantallaCargando> {
   @override
   void initState() {
     super.initState();
-    // Saltar a la pantalla correcta tan pronto como sea posible
     Future.microtask(() {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => AuthServicio.estaLogueado
-              ? const PantallaPrincipal()
-              : const PantallaLogin(),
-          transitionDuration: const Duration(milliseconds: 120),
-          transitionsBuilder: (_, a, __, c) =>
-              FadeTransition(opacity: a, child: c),
-        ),
-      );
+      Navigator.pushReplacement(context, PageRouteBuilder(
+        pageBuilder: (_, __, ___) => AuthServicio.estaLogueado
+            ? const PantallaPrincipal()
+            : const PantallaLogin(),
+        transitionDuration: const Duration(milliseconds: 120),
+        transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
+      ));
     });
   }
 
@@ -37,12 +32,11 @@ class _PantallaCargandoState extends State<PantallaCargando> {
     backgroundColor: AppCSS.mco,
     body: Center(
       child: SizedBox(
-        width: 48,
-        height: 48,
+        width: 48, height: 48,
         child: CircularProgressIndicator(
           strokeWidth: 4,
           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          backgroundColor: AppCSS.hv,
+          backgroundColor: AppCSS.wb,
         ),
       ),
     ),
